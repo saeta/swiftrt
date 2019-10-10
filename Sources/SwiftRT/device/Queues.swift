@@ -22,26 +22,26 @@ import Glibc
 #endif
 
 //==============================================================================
-/// Executes a closure on the specified stream
-/// - Parameter stream: the stream to set as the `currentStream`
+/// Executes a closure on the specified queue
+/// - Parameter queue: the queue to set as the `currentQueue`
 /// - Parameter body: A closure whose operations are to be executed on the
-///             specified stream
-public func using<R>(_ stream: DeviceStream,
+///             specified queue
+public func using<R>(_ queue: DeviceQueue,
                      perform body: () throws -> R) rethrows -> R {
-    // sets the default stream and logging info for the current scope
-    _Streams.local.push(stream: stream)
-    defer { _Streams.local.popStream() }
+    // sets the default queue and logging info for the current scope
+    _Queues.local.push(queue: queue)
+    defer { _Queues.local.popQueue() }
     // execute the body
     return try body()
 }
 
 //==============================================================================
-/// _Streams
-/// Manages the scope for the current stream, log, and error handlers
+/// _Queues
+/// Manages the scope for the current queue, log, and error handlers
 @usableFromInline
-class _Streams {
-    /// stack of default device streams, logging, and exception handler
-    var streamStack: [DeviceStream]
+class _Queues {
+    /// stack of default device queues, logging, and exception handler
+    var queueStack: [DeviceQueue]
 
     //--------------------------------------------------------------------------
     /// thread data key
@@ -58,15 +58,15 @@ class _Streams {
     }()
 
     //--------------------------------------------------------------------------
-    /// returns the thread local instance of the streams stack
+    /// returns the thread local instance of the queues stack
     @usableFromInline
-    static var local: _Streams {
+    static var local: _Queues {
         // try to get an existing state
         if let state = pthread_getspecific(key) {
             return Unmanaged.fromOpaque(state).takeUnretainedValue()
         } else {
             // create and return new state
-            let state = _Streams()
+            let state = _Queues()
             pthread_setspecific(key, Unmanaged.passRetained(state).toOpaque())
             return state
         }
@@ -74,72 +74,72 @@ class _Streams {
 
     //--------------------------------------------------------------------------
     /// current
-    public static var current: DeviceStream {
-        return _Streams.local.streamStack.last!
+    public static var current: DeviceQueue {
+        return _Queues.local.queueStack.last!
     }
     
     //--------------------------------------------------------------------------
-    /// hostStream
-    public static var hostStream: DeviceStream {
-        return _Streams.current.device.memoryAddressing == .unified ?
-            _Streams.current : _Streams._umaStream
+    /// hostQueue
+    public static var hostQueue: DeviceQueue {
+        return _Queues.current.device.memoryAddressing == .unified ?
+            _Queues.current : _Queues._umaQueue
     }
     
-    private static var _umaStream: DeviceStream = {
-        // create dedicated stream for app data transfer
-        return try! Platform.local.createStream(
+    private static var _umaQueue: DeviceQueue = {
+        // create dedicated queue for app data transfer
+        return try! Platform.local.createQueue(
             deviceId: 0, serviceName: "cpu", name: "host", isStatic: true)
     }()
     
     //--------------------------------------------------------------------------
-    /// auxHostStream
-    // create dedicated stream for data transfer when accessing
-    // within a stream closure or within HostMultiWrite
-    public static var auxHostStream: DeviceStream = {
-        return try! Platform.local.createStream(
+    /// auxHostQueue
+    // create dedicated queue for data transfer when accessing
+    // within a queue closure or within HostMultiWrite
+    public static var auxHostQueue: DeviceQueue = {
+        return try! Platform.local.createQueue(
             deviceId: 0, serviceName: "cpu", name: "dataSync", isStatic: true)
     }()
     
     //--------------------------------------------------------------------------
     /// logInfo
-    // there will always be the platform default stream and logInfo
-    public var logInfo: LogInfo { return streamStack.last!.logInfo }
+    // there will always be the platform default queue and logInfo
+    public var logInfo: LogInfo { return queueStack.last!.logInfo }
 
     //--------------------------------------------------------------------------
     /// updateDefault
-    public func updateDefault(stream: DeviceStream) {
-        streamStack[0] = stream
+    public func updateDefault(queue: DeviceQueue) {
+        queueStack[0] = queue
     }
     
     //--------------------------------------------------------------------------
     // initializers
     private init() {
         do {
-            // create the default stream based on service and device priority.
-            let stream = try Platform.local.defaultDevice.createStream(
+            // create the default queue based on service and device priority.
+            let queue = try Platform.local.defaultDevice.createQueue(
                     name: "default", isStatic: true)
-            streamStack = [stream]
+            queueStack = [queue]
         } catch {
-            print("Failed to create default streams")
+            print("Failed to create default queues")
             exit(1)
         }
     }
     
     //--------------------------------------------------------------------------
-    /// push(stream:
-    /// pushes the specified stream onto a stream stack which makes
-    /// it the current stream used by operator functions
+    /// push(queue:
+    /// pushes the specified queue onto a queue stack which makes
+    /// it the current queue used by operator functions
     @usableFromInline
-    func push(stream: DeviceStream) {
-        streamStack.append(stream)
+    func push(queue: DeviceQueue) {
+        queueStack.append(queue)
     }
     
     //--------------------------------------------------------------------------
-    /// popStream
-    /// restores the previous current stream
+    /// popQueue
+    /// restores the previous current queue
     @usableFromInline
-    func popStream() {
-        assert(streamStack.count > 1)
-        _ = streamStack.popLast()
+    func popQueue() {
+        assert(queueStack.count > 1)
+        _ = queueStack.popLast()
     }
 }

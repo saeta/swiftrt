@@ -16,28 +16,27 @@
 import Foundation
 
 //==============================================================================
-// DeviceStream
-/// A device stream is an asynchronous queue of commands executed on
-/// the associated device. It is a class protocol treated as an abstract
-/// driver interface.
-public protocol DeviceStream:
+// DeviceQueue
+/// A device queue is an asynchronous sequential list of commands to be
+/// executed on the associated device. It is a class protocol treated
+/// as an abstract device interface
+public protocol DeviceQueue:
     ObjectTracking,
     Logger,
     DeviceErrorHandling,
-    StreamIntrinsicsProtocol,
-    StreamGradientsProtocol
+    QueueIntrinsicsProtocol
 {
     //--------------------------------------------------------------------------
-    /// options to use when creating stream events
-    var defaultStreamEventOptions: StreamEventOptions { get }
-    /// the device the stream is associated with
+    /// options to use when creating queue events
+    var defaultQueueEventOptions: QueueEventOptions { get }
+    /// the device the queue is associated with
     var device: ComputeDevice { get }
-    /// if `true` the stream will execute functions synchronous with the app
+    /// if `true` the queue will execute functions synchronous with the app
     /// it is `false` by default and used for debugging
     var executeSynchronously: Bool { get set }
-    /// a unique id used to identify the stream
+    /// a unique id used to identify the queue
     var id: Int { get }
-    /// a name used to identify the stream
+    /// a name used to identify the queue
     var name: String { get }
     /// the maximum time to wait for an operation to complete
     /// a value of 0 (default) will wait forever
@@ -45,16 +44,16 @@ public protocol DeviceStream:
     
     //--------------------------------------------------------------------------
     // synchronization functions
-    /// creates a StreamEvent
-    func createEvent(options: StreamEventOptions) throws -> StreamEvent
-    /// queues a stream event op. When executed the event is signaled
+    /// creates a QueueEvent
+    func createEvent(options: QueueEventOptions) throws -> QueueEvent
+    /// queues a queue event op. When executed the event is signaled
     @discardableResult
-    func record(event: StreamEvent) throws -> StreamEvent
-    /// records an op on the stream that will perform a stream blocking wait
+    func record(event: QueueEvent) throws -> QueueEvent
+    /// records an op on the queue that will perform a queue blocking wait
     /// when it is processed
-    func wait(for event: StreamEvent) throws
-    /// blocks the calling thread until the stream queue has completed all work
-    func waitUntilStreamIsComplete() throws
+    func wait(for event: QueueEvent) throws
+    /// blocks the calling thread until the queue queue has completed all work
+    func waitUntilQueueIsComplete() throws
 
     //--------------------------------------------------------------------------
     // data transport functions
@@ -72,31 +71,31 @@ public protocol DeviceStream:
     //--------------------------------------------------------------------------
     // debugging functions
     /// simulateWork(x:timePerElement:result:
-    /// introduces a delay in the stream by sleeping a duration of
+    /// introduces a delay in the queue by sleeping a duration of
     /// x.shape.elementCount * timePerElement
     func simulateWork<T>(x: T, timePerElement: TimeInterval, result: inout T)
         where T: TensorView
-    /// causes the stream to sleep for the specified interval for testing
-    func delayStream(atLeast interval: TimeInterval)
+    /// causes the queue to sleep for the specified interval for testing
+    func delayQueue(atLeast interval: TimeInterval)
     /// for unit testing. It's part of the class protocol so that remote
-    /// streams throw the error remotely.
+    /// queues throw the error remotely.
     func throwTestError()
 }
 
-public extension DeviceStream {
-    func createEvent() throws -> StreamEvent {
-        return try createEvent(options: defaultStreamEventOptions)
+public extension DeviceQueue {
+    func createEvent() throws -> QueueEvent {
+        return try createEvent(options: defaultQueueEventOptions)
     }
 }
 
-let streamThreadViolationMessage =
-"a stream can only be accessed by the thread that created it"
+let queueThreadViolationMessage =
+"a queue can only be accessed by the thread that created it"
 
 //==============================================================================
-/// LocalDeviceStream
-public protocol LocalDeviceStream: DeviceStream { }
+/// LocalDeviceQueue
+public protocol LocalDeviceQueue: DeviceQueue { }
 
-public extension LocalDeviceStream {
+public extension LocalDeviceQueue {
     //--------------------------------------------------------------------------
     /// handleDevice(error:
     func handleDevice(error: Error) {
@@ -107,10 +106,10 @@ public extension LocalDeviceStream {
 }
 
 //==============================================================================
-// StreamIntrinsicsProtocol
-/// The required set of base level intrinsic functions for a `DeviceStream`
+// QueueIntrinsicsProtocol
+/// The required set of base level intrinsic functions for a `DeviceQueue`
 ///
-public protocol StreamIntrinsicsProtocol {
+public protocol QueueIntrinsicsProtocol {
     /// Computes the absolute value of the specified TensorView element-wise.
     func abs<T>(x: T, result: inout T) where
         T: TensorView, T.Element: FloatingPoint

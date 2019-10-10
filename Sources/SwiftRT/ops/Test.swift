@@ -6,7 +6,7 @@ import Foundation
 
 //==============================================================================
 /// simulateWork(x:timePerElement:result:
-/// introduces a delay in the stream by sleeping a duration of
+/// introduces a delay in the queue by sleeping a duration of
 /// x.shape.elementCount * timePerElement
 
 /// in place
@@ -18,7 +18,7 @@ public func simulateWork<T>(_ x: T, timePerElement: TimeInterval,
                             result: inout T)
     where T: TensorView
 {
-    _Streams.current.simulateWork(x: x, timePerElement: timePerElement,
+    _Queues.current.simulateWork(x: x, timePerElement: timePerElement,
                                   result: &result)
 }
 
@@ -49,12 +49,12 @@ public extension TensorView {
 }
 
 //==============================================================================
-/// delayStream(atLeast interval:
-/// introduces a delay in the stream by sleeping a duration of
+/// delayQueue(atLeast interval:
+/// introduces a delay in the queue by sleeping a duration of
 
 /// in place
 /// - Parameter timePerElement: seconds per element to delay
 @inlinable @inline(__always)
-public func delayStream(atLeast interval: TimeInterval) {
-    _Streams.current.delayStream(atLeast: interval)
+public func delayQueue(atLeast interval: TimeInterval) {
+    _Queues.current.delayQueue(atLeast: interval)
 }

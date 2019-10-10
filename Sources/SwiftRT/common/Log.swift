@@ -140,10 +140,10 @@ public extension _Logging {
 public protocol Logging : _Logging { }
 
 public extension Logging {
-    var log: Log { return _Streams.local.logInfo.log }
-    var logLevel: LogLevel { return _Streams.local.logInfo.logLevel }
-    var logNamePath: String { return _Streams.local.logInfo.namePath }
-    var logNestingLevel: Int { return _Streams.local.logInfo.nestingLevel }
+    var log: Log { return _Queues.local.logInfo.log }
+    var logLevel: LogLevel { return _Queues.local.logInfo.logLevel }
+    var logNamePath: String { return _Queues.local.logInfo.namePath }
+    var logNestingLevel: Int { return _Queues.local.logInfo.nestingLevel }
 }
 
 //==============================================================================
@@ -352,8 +352,8 @@ public struct LogCategories: OptionSet {
 	public static let dataCopy     = LogCategories(rawValue: 1 << 1)
 	public static let dataMutation = LogCategories(rawValue: 1 << 2)
     public static let initialize   = LogCategories(rawValue: 1 << 3)
-	public static let streamAlloc  = LogCategories(rawValue: 1 << 4)
-	public static let streamSync   = LogCategories(rawValue: 1 << 5)
+	public static let queueAlloc  = LogCategories(rawValue: 1 << 4)
+	public static let queueSync   = LogCategories(rawValue: 1 << 5)
     public static let scheduling   = LogCategories(rawValue: 1 << 6)
 }
 

@@ -27,7 +27,7 @@ public class CpuDevice: LocalComputeDevice {
     public var maxThreadsPerBlock: Int { return 1 }
     public let name: String
     public weak var service: ComputeService!
-    private let streamId = AtomicCounter(value: -1)
+    private let queueId = AtomicCounter(value: -1)
     public var timeout: TimeInterval?
     public let memoryAddressing: MemoryAddressing
     public var utilization: Float = 0
@@ -85,11 +85,11 @@ public class CpuDevice: LocalComputeDevice {
     }
 
     //--------------------------------------------------------------------------
-	// createStream
-	public func createStream(name streamName: String,
-                             isStatic: Bool) -> DeviceStream {
-        return CpuStream(logInfo: logInfo.flat(streamName),
-                         device: self, name: streamName, isStatic: isStatic)
+	// createQueue
+	public func createQueue(name queueName: String,
+                             isStatic: Bool) -> DeviceQueue {
+        return CpuQueue(logInfo: logInfo.flat(queueName),
+                         device: self, name: queueName, isStatic: isStatic)
 	}
 }
 

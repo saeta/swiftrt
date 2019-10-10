@@ -18,7 +18,7 @@ import Foundation
 //==============================================================================
 /// DeviceError
 public enum DeviceError : Error {
-    case streamError(idPath: [Int], message: String)
+    case queueError(idPath: [Int], message: String)
     case timeout(idPath: [Int], message: String)
 }
 
@@ -54,7 +54,7 @@ public extension DeviceErrorHandling {
     
     //--------------------------------------------------------------------------
     /// reportDevice(error:event:
-    /// sets and propagates a stream error
+    /// sets and propagates a queue error
     /// - Parameter error: the error to report
     func reportDevice(error: Error) {
         // set the error state

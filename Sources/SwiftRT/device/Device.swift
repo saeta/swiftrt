@@ -2,21 +2,24 @@
 //  Created by Edward Connell on 3/5/16
 //  Copyright © 2016 Connell Research. All rights reserved.
 //
+// Abstraction Protocols
+//
 //  ComputePlatform
 //      services[]
-//        ComputeService (cpu, cuda, amd, tpu, ...)
+//        ComputeService (cpu, vulkan, cuda, ...)
 //          devices[]
 //            ComputeDevice (gpu:0, gpu:1, ...)
 //              DeviceArray
-//              DeviceStream
-//                StreamEvent
+//              DeviceQueue
+//                CommandBuffer
+//                QueueEvent
 //
 import Foundation
 
 //==============================================================================
 /// ComputePlatform
-/// this represents the root for managing all services, devices, and streams
-/// on a platform. There is one local instance per process, and possibly
+/// The compute platform is the root object for managing all services, devices,
+/// and queues. There is one local instance per process, and possibly
 /// many remote instances.
 public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     /// global shared instance
@@ -41,7 +44,7 @@ public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     var services: [String : ComputeService] { get }
     
     //--------------------------------------------------------------------------
-    /// createStream will try to match the requested service name and
+    /// createQueue will try to match the requested service name and
     /// device id returning substitutions if needed to fulfill the request
     ///
     /// Parameters
@@ -50,13 +53,13 @@ public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     ///   then id % available will be used.
     /// - Parameter serviceName: (cpu, cuda, tpu, ...)
     ///   If no service name is specified, then the default is used.
-    /// - Parameter name: a text label assigned to the stream for logging
+    /// - Parameter name: a text label assigned to the queue for logging
     /// - Parameter isStatic: if `true` the object will not be reported
     ///   as a memory leak
-    func createStream(deviceId: Int,
-                      serviceName: String?,
-                      name: String,
-                      isStatic: Bool) throws -> DeviceStream
+    func createQueue(deviceId: Int,
+                     serviceName: String?,
+                     name: String,
+                     isStatic: Bool) throws -> DeviceQueue
     
     //--------------------------------------------------------------------------
     /// requestDevices
@@ -81,8 +84,8 @@ public protocol ComputeService: ObjectTracking, Logger, DeviceErrorHandling {
     var name: String { get }
     /// the platform this service belongs to
     var platform: ComputePlatform! { get }
-    /// the default maximum amount of time allowed for an operation to complete
-    /// this is inherited by devices and streams when they are created
+    /// The default maximum amount of time allowed for an operation to complete.
+    /// `timeout` is inherited by devices and queues when they are created.
     var timeout: TimeInterval? { get set }
 
     /// required initializer to support dynamically loaded services
@@ -156,9 +159,9 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
         -> DeviceArray
     /// creates a device array from a uma buffer.
     func createReferenceArray(buffer: UnsafeRawBufferPointer) -> DeviceArray
-    /// creates a named command stream for this device
+    /// creates a named command queue for this device
     /// - Parameter isStatic: if `true` the object will not be tracked
-    func createStream(name: String, isStatic: Bool) throws -> DeviceStream
+    func createQueue(name: String, isStatic: Bool) throws -> DeviceQueue
 }
 
 public enum MemoryAddressing { case unified, discreet }
@@ -192,45 +195,45 @@ public protocol DeviceArray: ObjectTracking {
 }
 
 //==============================================================================
-/// StreamEvent
-/// A stream event is a barrier synchronization object that is
+/// QueueEvent
+/// A queue event is a barrier synchronization object that is
 /// - created by a `ComputeDevice`
-/// - recorded on a stream to create a barrier
+/// - recorded on a queue to create a barrier
 /// - waited on by one or more threads for group synchronization
-public protocol StreamEvent: ObjectTracking {
+public protocol QueueEvent: ObjectTracking {
     /// is `true` if the even has occurred, used for polling
     var occurred: Bool { get }
     /// the last time the event was recorded
     var recordedTime: Date? { get set }
     /// measure elapsed time since another event
-    func elapsedTime(since other: StreamEvent) -> TimeInterval?
+    func elapsedTime(since other: QueueEvent) -> TimeInterval?
     /// will block the caller until the timeout has elapsed if one
     /// was specified during init, otherwise it will block forever
     func wait() throws
 }
 
-public extension StreamEvent {
+public extension QueueEvent {
     //--------------------------------------------------------------------------
     /// elapsedTime
-    /// computes the timeinterval between two stream event recorded times
+    /// computes the timeinterval between two queue event recorded times
     /// - Parameter other: the other event used to compute the interval
     /// - Returns: the elapsed interval. Will return `nil` if this event or
     ///   the other have not been recorded.
-    func elapsedTime(since other: StreamEvent) -> TimeInterval? {
+    func elapsedTime(since other: QueueEvent) -> TimeInterval? {
         guard let time = recordedTime,
               let other = other.recordedTime else { return nil }
         return time.timeIntervalSince(other)
     }
 }
 
-public struct StreamEventOptions: OptionSet {
+public struct QueueEventOptions: OptionSet {
     public init() { self.rawValue = 0 }
     public init(rawValue: Int) { self.rawValue = rawValue }
     public let rawValue: Int
-    public static let timing       = StreamEventOptions(rawValue: 1 << 0)
-    public static let interprocess = StreamEventOptions(rawValue: 1 << 1)
+    public static let timing       = QueueEventOptions(rawValue: 1 << 0)
+    public static let interprocess = QueueEventOptions(rawValue: 1 << 1)
 }
 
-public enum StreamEventError: Error {
+public enum QueueEventError: Error {
     case timedOut
 }

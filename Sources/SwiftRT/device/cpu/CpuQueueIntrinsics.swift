@@ -15,7 +15,7 @@
 //
 import Foundation
 
-public extension CpuStream {
+public extension CpuQueue {
     //--------------------------------------------------------------------------
     /// abs
     func abs<T>(x: T, result: inout T) where

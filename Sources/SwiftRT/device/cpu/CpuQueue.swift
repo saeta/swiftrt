@@ -15,12 +15,12 @@
 //
 import Foundation
 
-public final class CpuStream: LocalDeviceStream, StreamGradients {
+public final class CpuQueue: LocalDeviceQueue {
 	// protocol properties
 	public private(set) var trackingId = 0
-    public var defaultStreamEventOptions = StreamEventOptions()
+    public var defaultQueueEventOptions = QueueEventOptions()
 	public let device: ComputeDevice
-    public let id = Platform.nextUniqueStreamId
+    public let id = Platform.nextUniqueQueueId
 	public let name: String
     public var logInfo: LogInfo
     public var timeout: TimeInterval?
@@ -29,7 +29,7 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
     public var _lastError: Error?
     public var _errorMutex: Mutex = Mutex()
     
-    /// used to detect accidental stream access by other threads
+    /// used to detect accidental queue access by other threads
     private let creatorThread: Thread
     /// the queue used for command execution
     private let commandQueue: DispatchQueue
@@ -51,8 +51,8 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
         trackingId = ObjectTracker.global.register(self, namePath: path,
                                                    isStatic: isStatic)
         
-        diagnostic("\(createString) DeviceStream(\(trackingId)) " +
-            "\(device.name)_\(name)", categories: .streamAlloc)
+        diagnostic("\(createString) DeviceQueue(\(trackingId)) " +
+            "\(device.name)_\(name)", categories: .queueAlloc)
     }
     
     //--------------------------------------------------------------------------
@@ -60,29 +60,29 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
     /// waits for the queue to finish
     deinit {
         assert(Thread.current === creatorThread,
-               "Stream has been captured and is being released by a " +
-            "different thread. Probably by a queued function on the stream.")
+               "Queue has been captured and is being released by a " +
+            "different thread. Probably by a queued function on the queue.")
 
-        diagnostic("\(releaseString) DeviceStream(\(trackingId)) " +
-            "\(device.name)_\(name)", categories: [.streamAlloc])
+        diagnostic("\(releaseString) DeviceQueue(\(trackingId)) " +
+            "\(device.name)_\(name)", categories: [.queueAlloc])
         
         // release
         ObjectTracker.global.remove(trackingId: trackingId)
 
         // wait for the command queue to complete before shutting down
         do {
-            try waitUntilStreamIsComplete()
+            try waitUntilQueueIsComplete()
         } catch {
             if let timeout = self.timeout {
-                diagnostic("\(timeoutString) DeviceStream(\(trackingId)) " +
+                diagnostic("\(timeoutString) DeviceQueue(\(trackingId)) " +
                         "\(device.name)_\(name) timeout: \(timeout)",
-                        categories: [.streamAlloc])
+                        categories: [.queueAlloc])
             }
         }
     }
     
     //--------------------------------------------------------------------------
-    /// queues a closure on the stream for execution
+    /// queues a closure on the queue for execution
     /// This will catch and propagate the last asynchronous error thrown.
     ///
     public func queue<Inputs, R>(
@@ -92,7 +92,7 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
         _ body: @escaping (Inputs, inout R.MutableValues) throws
         -> Void) where R: TensorView
     {
-        // if the stream is in an error state, no additional work
+        // if the queue is in an error state, no additional work
         // will be queued
         guard lastError == nil else { return }
         
@@ -128,10 +128,10 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
     }
 
     //--------------------------------------------------------------------------
-    /// queues a closure on the stream for execution
+    /// queues a closure on the queue for execution
     /// This will catch and propagate the last asynchronous error thrown.
     private func queue(_ body: @escaping () throws -> Void) {
-        // if the stream is in an error state, no additional work
+        // if the queue is in an error state, no additional work
         // will be queued
         guard lastError == nil else { return }
         let errorDevice = device
@@ -154,25 +154,25 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
     }
     //--------------------------------------------------------------------------
     /// createEvent
-    /// creates an event object used for stream synchronization
-    public func createEvent(options: StreamEventOptions) throws -> StreamEvent {
-        let event = CpuStreamEvent(options: options, timeout: timeout)
-        diagnostic("\(createString) StreamEvent(\(event.trackingId)) on " +
-            "\(device.name)_\(name)", categories: .streamAlloc)
+    /// creates an event object used for queue synchronization
+    public func createEvent(options: QueueEventOptions) throws -> QueueEvent {
+        let event = CpuQueueEvent(options: options, timeout: timeout)
+        diagnostic("\(createString) QueueEvent(\(event.trackingId)) on " +
+            "\(device.name)_\(name)", categories: .queueAlloc)
         return event
     }
     
     //--------------------------------------------------------------------------
     /// record(event:
     @discardableResult
-    public func record(event: StreamEvent) throws -> StreamEvent {
+    public func record(event: QueueEvent) throws -> QueueEvent {
         guard lastError == nil else { throw lastError! }
-        let event = event as! CpuStreamEvent
-        diagnostic("\(recordString) StreamEvent(\(event.trackingId)) on " +
-            "\(device.name)_\(name)", categories: .streamSync)
+        let event = event as! CpuQueueEvent
+        diagnostic("\(recordString) QueueEvent(\(event.trackingId)) on " +
+            "\(device.name)_\(name)", categories: .queueSync)
         
         // set event time
-        if defaultStreamEventOptions.contains(.timing) {
+        if defaultQueueEventOptions.contains(.timing) {
             event.recordedTime = Date()
         }
         
@@ -185,11 +185,11 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
     //--------------------------------------------------------------------------
     /// wait(for event:
     /// waits until the event has occurred
-    public func wait(for event: StreamEvent) throws {
+    public func wait(for event: QueueEvent) throws {
         guard lastError == nil else { throw lastError! }
         guard !event.occurred else { return }
-        diagnostic("\(waitString) StreamEvent(\(event.trackingId)) on " +
-            "\(device.name)_\(name)", categories: .streamSync)
+        diagnostic("\(waitString) QueueEvent(\(event.trackingId)) on " +
+            "\(device.name)_\(name)", categories: .queueSync)
         
         queue {
             try event.wait()
@@ -197,16 +197,16 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
     }
 
     //--------------------------------------------------------------------------
-    /// waitUntilStreamIsComplete
+    /// waitUntilQueueIsComplete
     /// blocks the calling thread until the command queue is empty
-    public func waitUntilStreamIsComplete() throws {
+    public func waitUntilQueueIsComplete() throws {
         let event = try record(event: createEvent())
-        diagnostic("\(waitString) StreamEvent(\(event.trackingId)) " +
+        diagnostic("\(waitString) QueueEvent(\(event.trackingId)) " +
             "waiting for \(device.name)_\(name) to complete",
-            categories: .streamSync)
+            categories: .queueSync)
         try event.wait()
-        diagnostic("\(signaledString) StreamEvent(\(event.trackingId)) on " +
-            "\(device.name)_\(name)", categories: .streamSync)
+        diagnostic("\(signaledString) QueueEvent(\(event.trackingId)) on " +
+            "\(device.name)_\(name)", categories: .queueSync)
     }
     
     //--------------------------------------------------------------------------
@@ -260,21 +260,21 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
 
     //--------------------------------------------------------------------------
     /// simulateWork(x:timePerElement:result:
-    /// introduces a delay in the stream by sleeping a duration of
+    /// introduces a delay in the queue by sleeping a duration of
     /// x.shape.elementCount * timePerElement
     public func simulateWork<T>(x: T, timePerElement: TimeInterval,
                                 result: inout T)
         where T: TensorView
     {
         let delay = TimeInterval(x.shape.elementCount) * timePerElement
-        delayStream(atLeast: delay)
+        delayQueue(atLeast: delay)
     }
 
     //--------------------------------------------------------------------------
-    /// delayStream(atLeast:
-    /// causes the stream to sleep for the specified interval for testing
-    public func delayStream(atLeast interval: TimeInterval) {
-        assert(Thread.current === creatorThread, streamThreadViolationMessage)
+    /// delayQueue(atLeast:
+    /// causes the queue to sleep for the specified interval for testing
+    public func delayQueue(atLeast interval: TimeInterval) {
+        assert(Thread.current === creatorThread, queueThreadViolationMessage)
         queue {
             Thread.sleep(forTimeInterval: interval)
         }
@@ -284,9 +284,9 @@ public final class CpuStream: LocalDeviceStream, StreamGradients {
     /// throwTestError
     /// used for unit testing
     public func throwTestError() {
-        assert(Thread.current === creatorThread, streamThreadViolationMessage)
+        assert(Thread.current === creatorThread, queueThreadViolationMessage)
         queue {
-            throw DeviceError.streamError(idPath: [], message: "testError")
+            throw DeviceError.queueError(idPath: [], message: "testError")
         }
     }
 }

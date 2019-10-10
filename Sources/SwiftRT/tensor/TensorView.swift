@@ -23,7 +23,7 @@ import Foundation
 /// be referred to as tensors after this.
 ///
 /// Data can be safely accessed on the app thread and asynchronously on
-/// device streams without the user needing be concerned with synchronization.
+/// device queues without the user needing be concerned with synchronization.
 ///
 /// When a tensor is created, no memory is allocated until the first time
 /// access is requested. The location of the access determines where the
@@ -97,10 +97,10 @@ public protocol TensorView: Logging {
 
     //--------------------------------------------------------------------------
     /// returns a collection of viewed elements
-    func values(using stream: DeviceStream?) throws -> Values
+    func values(using queue: DeviceQueue?) throws -> Values
 
     /// returns a collection of mutable viewed elements
-    mutating func mutableValues(using stream: DeviceStream?) throws
+    mutating func mutableValues(using queue: DeviceQueue?) throws
         -> MutableValues
 }
 
@@ -227,13 +227,13 @@ public extension TensorView {
     /// The data will be copied before view creation if
     /// not uniquely held. Shared views will not perform
     /// copy-on-write when a write pointer is taken
-    mutating func sharedView(using stream: DeviceStream) throws -> Self {
+    mutating func sharedView(using queue: DeviceQueue) throws -> Self {
         // get the queue, if we reference it as a tensorArray member it
         // it adds a ref count which messes things up
-        let queue = tensorArray.accessQueue
+        let accessQueue = tensorArray.accessQueue
         
-        return try queue.sync {
-            try copyIfMutates(using: stream)
+        return try accessQueue.sync {
+            try copyIfMutates(using: queue)
             return Self(shape: shape,
                         tensorArray: tensorArray,
                         viewOffset: viewOffset,
@@ -329,7 +329,7 @@ public extension TensorView {
     /// copyIfMutates
     /// Creates a copy of the tensorArray if read-write access causes mutation
     /// NOTE: this must be called from inside the accessQueue.sync block
-    mutating func copyIfMutates(using stream: DeviceStream) throws {
+    mutating func copyIfMutates(using queue: DeviceQueue) throws {
         // for unit tests
         tensorArray.lastAccessMutatedView = false
         guard !isShared && !isUniqueReference() else { return }
@@ -340,59 +340,59 @@ public extension TensorView {
         
         // create the new array and copy the values
         tensorArray = try TensorArray<Element>(copying: tensorArray,
-                                               using: stream)
+                                               using: queue)
         tensorArray.lastAccessMutatedView = true
     }
 
     //--------------------------------------------------------------------------
-    /// synchronizeStreams
-    /// If the stream is changing, then this creates an event and
-    /// records it onto the end of the lastStream, then records a wait
-    /// on the new stream. This insures the lastStream finishes before
+    /// synchronizeQueues
+    /// If the queue is changing, then this creates an event and
+    /// records it onto the end of the lastQueue, then records a wait
+    /// on the new queue. This insures the lastQueue finishes before
     /// the new one begins
-    private func synchronize(stream lastStream: DeviceStream?,
-                             with nextStream: DeviceStream) throws {
-        if let lastStream = lastStream, nextStream.id != lastStream.id {
-            let event = try lastStream.createEvent()
+    private func synchronize(queue lastQueue: DeviceQueue?,
+                             with nextQueue: DeviceQueue) throws {
+        if let lastQueue = lastQueue, nextQueue.id != lastQueue.id {
+            let event = try lastQueue.createEvent()
             diagnostic(
-                "\(nextStream.device.name)_\(nextStream.name) will wait for " +
-                "\(lastStream.device.name)_\(lastStream.name) " +
-                "using StreamEvent(\(event.trackingId))",
-                categories: .streamSync)
-            try nextStream.wait(for: lastStream.record(event: event))
+                "\(nextQueue.device.name)_\(nextQueue.name) will wait for " +
+                "\(lastQueue.device.name)_\(lastQueue.name) " +
+                "using QueueEvent(\(event.trackingId))",
+                categories: .queueSync)
+            try nextQueue.wait(for: lastQueue.record(event: event))
         }
     }
     
     //--------------------------------------------------------------------------
-    /// readOnly(using stream:
+    /// readOnly(using queue:
     /// Returns a read only device memory buffer synced with the specified
-    /// stream.
-    func readOnly(using stream: DeviceStream? = nil) throws
+    /// queue.
+    func readOnly(using queue: DeviceQueue? = nil) throws
         -> UnsafeBufferPointer<Element>
     {
-        // if no stream is specified then use the hostStream
-        let deviceStream = stream ?? _Streams.hostStream
-        if let lastError = deviceStream.lastError { throw lastError }
+        // if no queue is specified then use the hostQueue
+        let deviceQueue = queue ?? _Queues.hostQueue
+        if let lastError = deviceQueue.lastError { throw lastError }
 
         // get the queue, if we reference it directly as a dataArray member it
         // it adds a ref count which messes things up
-        let queue = tensorArray.accessQueue
+        let accessQueue = tensorArray.accessQueue
         
-        return try queue.sync {
+        return try accessQueue.sync {
             // this is only used for unit testing
             tensorArray.lastAccessMutatedView = false
 
-            // sync streams
-            try synchronize(stream: tensorArray.lastMutatingStream,
-                            with: deviceStream)
+            // sync queues
+            try synchronize(queue: tensorArray.lastMutatingQueue,
+                            with: deviceQueue)
             // get the buffer
-            let buffer = try tensorArray.readOnly(using: deviceStream)
+            let buffer = try tensorArray.readOnly(using: deviceQueue)
 
-            // if `stream` is nil then the deviceStream is the hostStream
+            // if `queue` is nil then the deviceQueue is the hostQueue
             // and the caller wants to synchronize with the app thread
-            if stream == nil {
-                assert(deviceStream.device.memoryAddressing == .unified)
-                try deviceStream.waitUntilStreamIsComplete()
+            if queue == nil {
+                assert(deviceQueue.device.memoryAddressing == .unified)
+                try deviceQueue.waitUntilQueueIsComplete()
             }
 
             return UnsafeBufferPointer(
@@ -402,35 +402,35 @@ public extension TensorView {
     }
     
     //--------------------------------------------------------------------------
-    /// readWrite(using stream:
+    /// readWrite(using queue:
     /// Returns a read write device memory buffer synced with the specified
-    /// stream.
-    mutating func readWrite(using stream: DeviceStream? = nil) throws
+    /// queue.
+    mutating func readWrite(using queue: DeviceQueue? = nil) throws
         -> UnsafeMutableBufferPointer<Element>
     {
         precondition(!tensorArray.isReadOnly, "the tensor is read only")
-        let deviceStream = stream ?? _Streams.hostStream
-        if let lastError = deviceStream.lastError { throw lastError }
+        let deviceQueue = queue ?? _Queues.hostQueue
+        if let lastError = deviceQueue.lastError { throw lastError }
 
         // get the queue, if we reference it as a dataArray member it
         // it adds a ref count which messes things up
-        let queue = tensorArray.accessQueue
+        let accessQueue = tensorArray.accessQueue
         
-        return try queue.sync {
-            // sync streams
-            try synchronize(stream: tensorArray.lastMutatingStream,
-                            with: deviceStream)
+        return try accessQueue.sync {
+            // sync queues
+            try synchronize(queue: tensorArray.lastMutatingQueue,
+                            with: deviceQueue)
             // mutating write?
-            try copyIfMutates(using: deviceStream)
+            try copyIfMutates(using: deviceQueue)
 
             // get the buffer
-            let buffer = try tensorArray.readWrite(using: deviceStream)
+            let buffer = try tensorArray.readWrite(using: deviceQueue)
             
-            // if `stream` is nil then the deviceStream is the hostStream
+            // if `queue` is nil then the deviceQueue is the hostQueue
             // and the caller wants to synchronize with the app thread
-            if stream == nil {
-                assert(deviceStream.device.memoryAddressing == .unified)
-                try deviceStream.waitUntilStreamIsComplete()
+            if queue == nil {
+                assert(deviceQueue.device.memoryAddressing == .unified)
+                try deviceQueue.waitUntilQueueIsComplete()
             }
 
             return UnsafeMutableBufferPointer(
@@ -490,12 +490,12 @@ public extension TensorView {
         -> Void) throws
     {
         assert(batchSize == nil || batchSize! <= extents[0])
-        let stream = _Streams.hostStream
-        let errorDevice = stream.device
-        var shared = try sharedView(using: stream)
+        let queue = _Queues.hostQueue
+        let errorDevice = queue.device
+        var shared = try sharedView(using: queue)
         let group = DispatchGroup()
-        let queue = DispatchQueue(label: "hostMultiWrite",
-                                  attributes: .concurrent)
+        let batchQueue = DispatchQueue(label: "hostMultiWrite",
+                                       attributes: .concurrent)
         let batchSize = batchSize ?? {
             let size = extents[0] / ProcessInfo.processInfo.activeProcessorCount
             return size == 0 ? extents[0] : size
@@ -508,8 +508,8 @@ public extension TensorView {
             if synchronous {
                 try body(view)
             } else {
-                guard stream.lastError == nil else { throw stream.lastError! }
-                queue.async(group: group) {
+                guard queue.lastError == nil else { throw queue.lastError! }
+                batchQueue.async(group: group) {
                     do {
                         try body(view)
                     } catch {
@@ -520,7 +520,7 @@ public extension TensorView {
         }
         
         // ensure the data is local
-        _ = try shared.readWrite(using: stream)
+        _ = try shared.readWrite(using: queue)
         
         // launch the batches
         let lastBatchIndex = extents[0] - remainder
@@ -538,19 +538,19 @@ public extension TensorView {
     //--------------------------------------------------------------------------
     /// hostMultiWriteBuffer
     /// Returns a read write host memory buffer synced with the host app
-    /// stream.
+    /// queue.
     mutating func hostMultiWriteBuffer() -> UnsafeMutableBufferPointer<Element>{
-        assert(tensorArray.lastMutatingStream != nil,
-               "readWrite(using: _Streams.hostStream) must be called first")
-        let lastStream = tensorArray.lastMutatingStream!
-        assert(lastStream.device.memoryAddressing == .unified)
+        assert(tensorArray.lastMutatingQueue != nil,
+               "readWrite(using: _Queues.hostQueue) must be called first")
+        let lastQueue = tensorArray.lastMutatingQueue!
+        assert(lastQueue.device.memoryAddressing == .unified)
         // get the queue, if we reference it as a dataArray member it
         // it adds a ref count which messes things up
         let queue = tensorArray.accessQueue
         
         return queue.sync {
             // the buffer is already in host memory so it can't fail
-            let buffer = try! tensorArray.readWrite(using: lastStream)
+            let buffer = try! tensorArray.readWrite(using: lastQueue)
             
             return UnsafeMutableBufferPointer(
                 start: buffer.baseAddress!.advanced(by: viewOffset),

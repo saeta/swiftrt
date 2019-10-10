@@ -24,15 +24,15 @@ public protocol LocalPlatform : ComputePlatform {
     var _defaultDevice: ComputeDevice? { get set }
     /// a platform wide unique device id obtained during initialization
     static var nextUniqueDeviceId: Int { get }
-    /// a platform wide unique stream id obtained during initialization
-    static var nextUniqueStreamId: Int { get }
+    /// a platform wide unique queue id obtained during initialization
+    static var nextUniqueQueueId: Int { get }
 }
 
 public extension LocalPlatform {
     //--------------------------------------------------------------------------
     /// log
     /// the caller can specify a root log which will be inherited by the
-    /// device stream hierarchy, but can be overridden at any point down
+    /// device queue hierarchy, but can be overridden at any point down
     /// the tree
     static var log: Log {
         get { return Platform.local.logInfo.log }
@@ -161,7 +161,7 @@ public extension LocalPlatform {
     }
     
     //--------------------------------------------------------------------------
-    /// createStream will try to match the requested service name and
+    /// createQueue will try to match the requested service name and
     /// device id returning substitutions if needed to fulfill the request
     ///
     /// Parameters
@@ -170,20 +170,20 @@ public extension LocalPlatform {
     ///   then id % available will be used.
     /// - Parameter serviceName: (cpu, cuda, tpu, ...)
     ///   If no service name is specified, then the default is used.
-    /// - Parameter name: a text label assigned to the stream for logging
-    func createStream(deviceId id: Int = 0,
+    /// - Parameter name: a text label assigned to the queue for logging
+    func createQueue(deviceId id: Int = 0,
                       serviceName: String? = nil,
-                      name: String = "stream",
-                      isStatic: Bool = false) throws -> DeviceStream {
+                      name: String = "queue",
+                      isStatic: Bool = false) throws -> DeviceQueue {
         
         let serviceName = serviceName ?? defaultDevice.service.name
         if let device = requestDevice(serviceName: serviceName, deviceId: id) {
-            return try device.createStream(name: name, isStatic: isStatic)
+            return try device.createQueue(name: name, isStatic: isStatic)
         } else {
             writeLog("CPU substituted. Service `\(serviceName)` not found.",
                 level: .warning)
             let device = requestDevice(serviceName: "cpu")!
-            return try device.createStream(name: name, isStatic: isStatic)
+            return try device.createQueue(name: name, isStatic: isStatic)
         }
     }
     
@@ -208,7 +208,7 @@ public extension LocalPlatform {
     ///
     /// - Parameter url: the location of the remote platform
     /// - Returns: a reference to the remote platform, which can be used
-    ///   to query resources and create remote streams.
+    ///   to query resources and create remote queues.
     static func open(platform url: URL) throws -> ComputePlatform {
         fatalError("not implemented yet")
     }
@@ -236,16 +236,16 @@ final public class Platform: LocalPlatform {
     public private(set) var trackingId = 0
     public var logInfo: LogInfo
 
-    /// a platform wide unique stream id obtained during initialization
+    /// a platform wide unique queue id obtained during initialization
     private static var deviceIdCounter = AtomicCounter(value: -1)
     public static var nextUniqueDeviceId: Int {
         return Platform.deviceIdCounter.increment()
     }
 
-    /// a platform wide unique stream id obtained during initialization
-    private static var streamIdCounter = AtomicCounter(value: -1)
-    public static var nextUniqueStreamId: Int {
-        return Platform.streamIdCounter.increment()
+    /// a platform wide unique queue id obtained during initialization
+    private static var queueIdCounter = AtomicCounter(value: -1)
+    public static var nextUniqueQueueId: Int {
+        return Platform.queueIdCounter.increment()
     }
 
     //--------------------------------------------------------------------------

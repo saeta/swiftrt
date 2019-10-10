@@ -16,23 +16,23 @@
 import Foundation
 
 //==============================================================================
-// CpuStreamEvent
-/// a stream event behaves like a barrier. The first caller to wait takes
+// CpuQueueEvent
+/// a queue event behaves like a barrier. The first caller to wait takes
 /// the wait semaphore
-final public class CpuStreamEvent : StreamEvent {
+final public class CpuQueueEvent : QueueEvent {
     // properties
     public private(set) var trackingId = 0
     public private(set) var occurred: Bool = false
     public var recordedTime: Date?
 
-    public let options: StreamEventOptions
+    public let options: QueueEventOptions
     private let timeout: TimeInterval?
     private let barrier = Mutex()
     private let semaphore = DispatchSemaphore(value: 0)
 
     //--------------------------------------------------------------------------
     // initializers
-    public init(options: StreamEventOptions, timeout: TimeInterval?) {
+    public init(options: QueueEventOptions, timeout: TimeInterval?) {
         self.options = options
         self.timeout = timeout
         #if DEBUG
@@ -68,7 +68,7 @@ final public class CpuStreamEvent : StreamEvent {
             guard !occurred else { return }
             if let timeout = self.timeout, timeout > 0 {
                 if semaphore.wait(timeout: .now() + timeout) == .timedOut {
-                    throw StreamEventError.timedOut
+                    throw QueueEventError.timedOut
                 }
             } else {
                 semaphore.wait()

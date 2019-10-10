@@ -28,7 +28,7 @@ class test_Syntax: XCTestCase {
         ("test_repeatValue", test_repeatValue),
         ("test_sumView", test_sumView),
         ("test_transpose", test_transpose),
-        ("test_streams", test_streams),
+        ("test_queues", test_queues),
         ("test_structuredScalar", test_structuredScalar),
         ("test_withResultPlacement", test_withResultPlacement),
         ("test_logging", test_logging),
@@ -172,28 +172,28 @@ class test_Syntax: XCTestCase {
     }
     
     //==========================================================================
-    // test_streams
-    // create a named stream on two different discreet devices
+    // test_queues
+    // create a named queue on two different discreet devices
     // <cpu devices 1 and 2 are discreet memory versions for testing>
     //
     // This also shows how the object tracker can be checked to see if
     // there are any retain cycles.
-    func test_streams() {
+    func test_queues() {
         do {
             Platform.log.level = .diagnostic
             Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
             
-            let stream1 = try Platform.local
-                    .createStream(deviceId: 1, serviceName: "cpuUnitTest")
-            let stream2 = try Platform.local
-                    .createStream(deviceId: 2, serviceName: "cpuUnitTest")
+            let queue1 = try Platform.local
+                    .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
+            let queue2 = try Platform.local
+                    .createQueue(deviceId: 2, serviceName: "cpuUnitTest")
 
-            let volume = using(stream1) {
+            let volume = using(queue1) {
                 Volume<Int32>((3, 4, 5)).filledWithIndex()
             }
             let view = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
             
-            let viewSum = try using(stream2) {
+            let viewSum = try using(queue2) {
                 try sum(view).asValue()
             }
             XCTAssert(viewSum == 312)
@@ -210,7 +210,7 @@ class test_Syntax: XCTestCase {
     
     //==========================================================================
     // test_structuredScalar
-    // create a named stream on two different discreet devices
+    // create a named queue on two different discreet devices
     // <cpu devices 1 and 2 are discreet memory versions for testing>
     func test_structuredScalar() {
         let sample = RGBA<UInt8>(0, 1, 2, 3)
@@ -239,25 +239,25 @@ class test_Syntax: XCTestCase {
     
     //==========================================================================
     // test_logging
-    // create a named stream on two different discreet devices
+    // create a named queue on two different discreet devices
     // <cpu devices 1 and 2 are discreet memory versions for testing>
     func test_logging() {
         do {
             Platform.log.level = .diagnostic
             Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
             
-            let stream1 = try Platform.local
-                .createStream(deviceId: 1, serviceName: "cpuUnitTest")
+            let queue1 = try Platform.local
+                .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
             
-            let stream2 = try Platform.local
-                .createStream(deviceId: 2, serviceName: "cpuUnitTest")
+            let queue2 = try Platform.local
+                .createQueue(deviceId: 2, serviceName: "cpuUnitTest")
             
-            let volume = using(stream1) {
+            let volume = using(queue1) {
                 Volume<Int32>((3, 4, 5)).filledWithIndex()
             }
             let subView = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
             
-            let subViewSum = try using(stream2) {
+            let subViewSum = try using(queue2) {
                 try sum(subView).asValue()
             }
             XCTAssert(subViewSum == 312)
