@@ -72,6 +72,16 @@ public extension LocalPlatform {
                                               name: "cpuUnitTest")
             loadedServices[cpuUnitTestService.name] = cpuUnitTestService
 
+            //-------------------------------------
+            // static inclusions
+//            #if VULKAN
+            let vulkanService =
+                try VulkanComputeService(platform: Platform.local,
+                                         id: loadedServices.count,
+                                         logInfo: logInfo)
+            loadedServices[vulkanService.name] = vulkanService
+//            #endif
+
             #if CUDA
             let cudaService = try CudaComputeService(platform: Platform.local,
                                                      id: loadedServices.count,
@@ -168,13 +178,13 @@ public extension LocalPlatform {
     /// - Parameter deviceId: (0, 1, 2, ...)
     ///   If the specified id is greater than the number of available devices,
     ///   then id % available will be used.
-    /// - Parameter serviceName: (cpu, cuda, tpu, ...)
+    /// - Parameter serviceName: (cpu, vulkan, cuda, ...)
     ///   If no service name is specified, then the default is used.
     /// - Parameter name: a text label assigned to the queue for logging
     func createQueue(deviceId id: Int = 0,
-                      serviceName: String? = nil,
-                      name: String = "queue",
-                      isStatic: Bool = false) throws -> DeviceQueue {
+                     serviceName: String? = nil,
+                     name: String = "queue",
+                     isStatic: Bool = false) throws -> DeviceQueue {
         
         let serviceName = serviceName ?? defaultDevice.service.name
         if let device = requestDevice(serviceName: serviceName, deviceId: id) {
@@ -227,7 +237,7 @@ final public class Platform: LocalPlatform {
     public var id: Int = 0
     public static let local = Platform()
     public var serviceModuleDirectory = URL(fileURLWithPath: "TODO")
-    public var servicePriority = ["cuda", "cpu"]
+    public var servicePriority = ["vulkan", "cuda", "cpu"]
     public lazy var services: [String : ComputeService] = {
         loadServices()
         return Platform._services!
