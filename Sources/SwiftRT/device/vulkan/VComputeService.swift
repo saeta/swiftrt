@@ -32,6 +32,7 @@ public final class VulkanComputeService: LocalComputeService {
 
     // vulkan specific properties
     private var instance: VkInstance!
+    private var debugReportCallback: VkDebugReportCallbackEXT!
     
     //--------------------------------------------------------------------------
     // timeout
@@ -57,6 +58,9 @@ public final class VulkanComputeService: LocalComputeService {
         // create the vulkan instance
         instance = try createVkInstance()
         
+        // create compute device for each physical vulkan device
+        try createDevices()
+        
         // this is held statically by the Platform
         trackingId = ObjectTracker.global.register(self, isStatic: true)
     }
@@ -73,7 +77,7 @@ public final class VulkanComputeService: LocalComputeService {
         var enabledLayers = [CStringPointer?]()
         var enabledExtensions = [CStringPointer?]()
         
-        //----------------------------------------------------------------------
+        //-----------------------------------
         // Enable Vulkan validation layers in DEBUG mode
         #if DEBUG
         // query supported validation layers to find "standard_validation"
@@ -154,9 +158,68 @@ public final class VulkanComputeService: LocalComputeService {
             enabledExtensionCount: UInt32(enabledExtensions.count),
             ppEnabledExtensionNames: &enabledExtensions)
         
-        // create the instance. It will throw if it failed, so it can't be nil.
-        var instance: VkInstance?
+        // vkCreateInstance will throw if it failed, so result can't be nil
+        var instance: VkInstance!
         try vkCheck(vkCreateInstance(&createInfo, nil, &instance))
-        return instance!
+        
+        //-----------------------------------
+        // Register a callback function for the extension
+        // VK_EXT_DEBUG_REPORT_EXTENSION_NAME, so that warnings emitted
+        // from the validation layer are printed
+        #if DEBUG
+        func debugCallback(
+            flags: VkDebugReportFlagsEXT,
+            objectType: VkDebugReportObjectTypeEXT,
+            object: UInt64,
+            location: Int,
+            messageCode: Int32,
+            pLayerPrefix: UnsafePointer<Int8>?,
+            pMessage: UnsafePointer<Int8>?,
+            pUserData: UnsafeMutableRawPointer?) -> VkBool32
+        {
+            Platform.local.writeLog("\(String(cString: pLayerPrefix!)): " +
+                "\(String(cString: pMessage!))")
+            return VkBool32(VK_FALSE)
+        }
+
+
+        // load the callback report function pointer
+        let callbackFnName = strdup("vkCreateDebugReportCallbackEXT")
+        defer { free(callbackFnName) }
+        
+        let vkCreateDebugReportCallbackEXT =
+            unsafeBitCast(vkGetInstanceProcAddr(instance!, callbackFnName),
+                          to: PFN_vkCreateDebugReportCallbackEXT.self)
+
+        // init the report create info
+        let flags: VkDebugReportFlagsEXT =
+            VK_DEBUG_REPORT_ERROR_BIT_EXT.rawValue |
+                VK_DEBUG_REPORT_WARNING_BIT_EXT.rawValue |
+                VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT.rawValue
+        
+        var reportCreateInfo = VkDebugReportCallbackCreateInfoEXT(
+            sType: VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
+            pNext: nil,
+            flags: flags,
+            pfnCallback: debugCallback,
+            pUserData: nil)
+        
+        // Register callback
+        try vkCheck(vkCreateDebugReportCallbackEXT(instance,
+                                                   &reportCreateInfo,
+                                                   nil, // allocator
+                                                   &debugReportCallback))
+        #endif
+
+        // done
+        return instance
+    }
+    
+    //--------------------------------------------------------------------------
+    // createDevices
+    // Create a ComputeDevice for each physical vulkan device
+    private func createDevices() throws {
+        // get the device count
+//        let deviceCount
     }
 }
