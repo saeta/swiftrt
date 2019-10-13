@@ -165,7 +165,7 @@ public final class VulkanComputeService: LocalComputeService {
         //-----------------------------------
         // Register a callback function for the extension
         // VK_EXT_DEBUG_REPORT_EXTENSION_NAME, so that warnings emitted
-        // from the validation layer are printed
+        // from the validation layer are written to the log
         #if DEBUG
         func debugCallback(
             flags: VkDebugReportFlagsEXT,
@@ -181,7 +181,6 @@ public final class VulkanComputeService: LocalComputeService {
                 "\(String(cString: pMessage!))")
             return VkBool32(VK_FALSE)
         }
-
 
         // load the callback report function pointer
         let callbackFnName = strdup("vkCreateDebugReportCallbackEXT")
