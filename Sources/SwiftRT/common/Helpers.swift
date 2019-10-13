@@ -19,6 +19,8 @@ public func NotImplemented() {
     fatalError("not implemented yet")
 }
 
+public typealias CStringPointer = UnsafePointer<CChar>
+
 //==============================================================================
 // Memory sizes
 extension Int {

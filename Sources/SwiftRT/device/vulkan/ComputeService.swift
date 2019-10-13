@@ -31,7 +31,7 @@ public final class VulkanComputeService: LocalComputeService {
     public let name: String
 
     // vulkan specific properties
-    private let instance: VkInstance
+    private var instance: VkInstance!
     
     //--------------------------------------------------------------------------
     // timeout
@@ -55,7 +55,7 @@ public final class VulkanComputeService: LocalComputeService {
         self.logInfo = logInfo
         
         // create the vulkan instance
-        instance = try VulkanComputeService.createInstance()
+        instance = try createVkInstance()
         
         // this is held statically by the Platform
         trackingId = ObjectTracker.global.register(self, isStatic: true)
@@ -66,22 +66,73 @@ public final class VulkanComputeService: LocalComputeService {
     }
 
     //--------------------------------------------------------------------------
-    // createInstance
+    // createVkInstance
     // Creates the VkInstance object, which is the root of the environment
-    private static func createInstance() throws -> VkInstance {
+    private func createVkInstance() throws -> VkInstance {
         // list of enabled layers for validation and extensions
-        var enabledLayers: [String] = []
-        var enabledExtensions: [String] = []
+        var enabledLayers = [CStringPointer?]()
+        var enabledExtensions = [CStringPointer?]()
         
         //----------------------------------------------------------------------
+        // Enable Vulkan validation layers in DEBUG mode
         #if DEBUG
-        // get all supported validation layers
+        // query supported validation layers to find "standard_validation"
         var layerCount: UInt32 = 0
-        vkEnumerateInstanceLayerProperties(&layerCount, nil)
+        try vkCheck(vkEnumerateInstanceLayerProperties(&layerCount, nil))
 
-
+        var layerProps = [VkLayerProperties](repeating: VkLayerProperties(),
+                                             count: Int(layerCount))
+        try vkCheck(vkEnumerateInstanceLayerProperties(&layerCount,
+                                                       &layerProps))
+        
+        let stdName = "VK_LAYER_LUNARG_standard_validation"
+        for i in 0..<layerProps.count {
+            // point to retained string tuple
+            let layerNamePointer = withUnsafeBytes(of: &layerProps[i].layerName) {
+                return $0.baseAddress!.assumingMemoryBound(to: CChar.self)
+            }
+            if String(cString: layerNamePointer) == stdName {
+                print(String(cString: layerNamePointer))
+                enabledLayers.append(layerNamePointer)
+                break
+            }
+        }
+        if enabledLayers.isEmpty {
+            writeLog("Layer \(stdName) not supported", level: .warning)
+        }
+        
+        // Enable VK_EXT_DEBUG_REPORT_EXTENSION_NAME extension so that
+        // validation layers will emit warnings
+        var extensionCount: UInt32 = 0
+        try vkCheck(vkEnumerateInstanceExtensionProperties(nil,
+                                                           &extensionCount,
+                                                           nil))
+        var extensionProps =
+            [VkExtensionProperties](repeating: VkExtensionProperties(),
+                                    count: Int(extensionCount))
+        try vkCheck(vkEnumerateInstanceExtensionProperties(nil,
+                                                           &extensionCount,
+                                                           &extensionProps))
+        let extName = VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+        for i in 0..<extensionProps.count {
+            // point to retained string tuple
+            let extensionNamePointer =
+                withUnsafeBytes(of: &extensionProps[i].extensionName) {
+                return $0.baseAddress!.assumingMemoryBound(to: CChar.self)
+            }
+            
+            if String(cString: extensionNamePointer) == extName {
+                print(String(cString: extensionNamePointer))
+                enabledExtensions.append(extensionNamePointer)
+                break
+            }
+        }
+        if enabledExtensions.isEmpty {
+            writeLog("Extension \(extName) not supported", level: .warning)
+        }
         #endif
 
+        //----------------------------------------------------------------------
         // initialize the VkApplicationInfo.
         // TODO: revisit to determine what the meaningful values should be
         var applicationInfo = VkApplicationInfo(
@@ -93,18 +144,19 @@ public final class VulkanComputeService: LocalComputeService {
             engineVersion: 0,
             apiVersion: UInt32(VK_VERSION_1_1))
         
-        let createInfo = VkInstanceCreateInfo(
+        var createInfo = VkInstanceCreateInfo(
             sType: VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             pNext: nil,
             flags: 0,
             pApplicationInfo: &applicationInfo,
             enabledLayerCount: UInt32(enabledLayers.count),
-            ppEnabledLayerNames: nil,
+            ppEnabledLayerNames: &enabledLayers,
             enabledExtensionCount: UInt32(enabledExtensions.count),
-            ppEnabledExtensionNames: nil)
-
-        try vkCheck(status: VK_TIMEOUT)
-        fatalError()
+            ppEnabledExtensionNames: &enabledExtensions)
+        
+        // create the instance. It will throw if it failed, so it can't be nil.
+        var instance: VkInstance?
+        try vkCheck(vkCreateInstance(&createInfo, nil, &instance))
+        return instance!
     }
 }
-

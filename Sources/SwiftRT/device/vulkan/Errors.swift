@@ -18,7 +18,7 @@ import CVulkan
 
 //==============================================================================
 // vkCheck
-public func vkCheck(status: VkResult, file: String = #file,
+public func vkCheck(_ status: VkResult, file: String = #file,
                     function: String = #function, line: Int = #line) throws {
     if status != VK_SUCCESS {
         let location = "Vulkan error in \(file) at \(function):\(line)"
