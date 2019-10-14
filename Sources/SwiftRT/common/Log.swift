@@ -352,9 +352,10 @@ public struct LogCategories: OptionSet {
 	public static let dataCopy     = LogCategories(rawValue: 1 << 1)
 	public static let dataMutation = LogCategories(rawValue: 1 << 2)
     public static let initialize   = LogCategories(rawValue: 1 << 3)
-	public static let queueAlloc  = LogCategories(rawValue: 1 << 4)
-	public static let queueSync   = LogCategories(rawValue: 1 << 5)
-    public static let scheduling   = LogCategories(rawValue: 1 << 6)
+    public static let properties   = LogCategories(rawValue: 1 << 4)
+	public static let queueAlloc   = LogCategories(rawValue: 1 << 5)
+	public static let queueSync    = LogCategories(rawValue: 1 << 6)
+    public static let scheduling   = LogCategories(rawValue: 1 << 7)
 }
 
 // strings

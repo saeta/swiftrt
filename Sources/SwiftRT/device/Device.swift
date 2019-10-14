@@ -50,6 +50,10 @@ public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     var serviceModuleDirectory: URL { get set }
     /// ordered list of service names specifying the order for auto selection
     var servicePriority: [String] { get set }
+    /// dictionary of service configuration property sets
+    /// Key is service name, value is serive property set
+    /// Property set [property name : any type specific value]
+    static var serviceProperties: [String : [String : Any]] { get set }
     /// a dynamically loaded collection of available compute services.
     /// The "cpu" service will always be available
     var services: [String : ComputeService] { get }

@@ -237,7 +237,8 @@ final public class Platform: LocalPlatform {
     public var id: Int = 0
     public static let local = Platform()
     public var serviceModuleDirectory = URL(fileURLWithPath: "TODO")
-    public var servicePriority = ["vulkan", "cuda", "cpu"]
+    public var servicePriority = ["cpu", "vulkan", "cuda"]
+    public static var serviceProperties = [String : [String : Any]]()
     public lazy var services: [String : ComputeService] = {
         loadServices()
         return Platform._services!

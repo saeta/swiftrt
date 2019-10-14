@@ -16,6 +16,13 @@
 import Foundation
 import CVulkan
 
+// TODO: have discussion about configuration property naming conventions
+public let vulkanApplicationName = "applicationName"
+public let vulkanApplicationVersion = "applicationVersion"
+public let vulkanEngineName = "engineName"
+public let vulkanEngineVersion = "engineVersion"
+public let vulkanApiVersion = "apiVersion"
+
 //==============================================================================
 // VulkanComputeService
 public final class VulkanComputeService: LocalComputeService {
@@ -71,7 +78,9 @@ public final class VulkanComputeService: LocalComputeService {
 
     //--------------------------------------------------------------------------
     // createVkInstance
-    // Creates the VkInstance object, which is the root of the environment
+    // Creates the VkInstance object, which is the root of the environment.
+    // During initialization the `Platform.serviceProperties` are checked for
+    // user specified configuration property values.
     private func createVkInstance() throws -> VkInstance {
         // list of enabled layers for validation and extensions
         var enabledLayers = [CStringPointer?]()
@@ -136,17 +145,32 @@ public final class VulkanComputeService: LocalComputeService {
         }
         #endif
 
-        //----------------------------------------------------------------------
+        //-----------------------------------
+        // get optional application name from vulkan properties
+        var cApplicationName = getPropertyCString(for: vulkanApplicationName)
+        defer { free(cApplicationName) }
+        let applicationVersion =
+            UInt32((getValue(for: vulkanApplicationVersion) as? Int) ?? 0)
+        
+        // get optional engine name from vulkan properties
+        var cEngineName = getPropertyCString(for: vulkanEngineName)
+        defer { free(cEngineName) }
+        
+        let engineVersion =
+            UInt32((getValue(for: vulkanEngineVersion) as? Int) ?? 0)
+        
+        let apiVersion = UInt32((getValue(for: vulkanApiVersion) as? Int32) ??
+            VK_VERSION_1_1)
+
         // initialize the VkApplicationInfo.
-        // TODO: revisit to determine what the meaningful values should be
         var applicationInfo = VkApplicationInfo(
             sType: VK_STRUCTURE_TYPE_APPLICATION_INFO,
             pNext: nil,
-            pApplicationName: nil,
-            applicationVersion: 0,
-            pEngineName: nil,
-            engineVersion: 0,
-            apiVersion: UInt32(VK_VERSION_1_1))
+            pApplicationName: cApplicationName,
+            applicationVersion: applicationVersion,
+            pEngineName: cEngineName,
+            engineVersion: engineVersion,
+            apiVersion: apiVersion)
         
         var createInfo = VkInstanceCreateInfo(
             sType: VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -183,11 +207,11 @@ public final class VulkanComputeService: LocalComputeService {
         }
 
         // load the callback report function pointer
-        let callbackFnName = strdup("vkCreateDebugReportCallbackEXT")
-        defer { free(callbackFnName) }
+        let cCallbackFnName = strdup("vkCreateDebugReportCallbackEXT")
+        defer { free(cCallbackFnName) }
         
         let vkCreateDebugReportCallbackEXT =
-            unsafeBitCast(vkGetInstanceProcAddr(instance!, callbackFnName),
+            unsafeBitCast(vkGetInstanceProcAddr(instance!, cCallbackFnName),
                           to: PFN_vkCreateDebugReportCallbackEXT.self)
 
         // init the report create info
@@ -214,6 +238,30 @@ public final class VulkanComputeService: LocalComputeService {
         return instance
     }
     
+    //--------------------------------------------------------------------------
+    // getPropertyCString
+    // retrieves a String property value from the Platform.serviceProperties
+    // dictionary and converts the value into a CString.
+    // NOTE: It is the callers responsibility to `free` the CString after use
+    private func getPropertyCString(for property: String) ->
+        UnsafeMutablePointer<Int8>?
+    {
+        if let value = Platform.serviceProperties[self.name]?[property] {
+            assert(value is String, "\(property) must be of type String")
+            return strdup(value as! String)
+        } else {
+            return nil
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // getValue
+    // retrieves a property value from the Platform.serviceProperties dictionary
+    // The caller must cast Any to the known value type before use
+    private func getValue(for property: String) -> Any? {
+        return Platform.serviceProperties[self.name]?[property]
+    }
+
     //--------------------------------------------------------------------------
     // createDevices
     // Create a ComputeDevice for each physical vulkan device

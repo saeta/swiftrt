@@ -15,6 +15,7 @@
 //
 import XCTest
 import Foundation
+import CVulkan
 
 @testable import SwiftRT
 
@@ -23,6 +24,7 @@ class test_Syntax: XCTestCase {
     // support terminal test run
     static var allTests = [
         ("test_simple", test_simple),
+        ("test_setServiceProperties", test_setServiceProperties),
         ("test_appThreadZipMapReduce", test_appThreadZipMapReduce),
         ("test_repeatVector", test_repeatVector),
         ("test_repeatValue", test_repeatValue),
@@ -45,6 +47,31 @@ class test_Syntax: XCTestCase {
         do {
             let matrix = Matrix<Float>((3, 5), any: 0..<15)
             print(matrix.formatted((2,0)))
+            let sum = try matrix.sum().asValue()
+            XCTAssert(sum == 105.0)
+        } catch {
+            XCTFail(String(describing: error))
+        }
+    }
+    
+    //==========================================================================
+    // test_setServiceProperties
+    // sets properties in the Platform `serviceProperties` dictionary
+    // to be used during compute service initialization
+    func test_setServiceProperties() {
+        Platform.log.level = .diagnostic
+        Platform.log.categories = [.properties]
+        Platform.local.servicePriority = ["vulkan"]
+        Platform.serviceProperties["vulkan"] = [
+            vulkanApplicationName : "MyApp",
+            vulkanApplicationVersion : 41,
+            vulkanEngineName : "MyEngine",
+            vulkanEngineVersion : 42,
+            vulkanApiVersion : VK_VERSION_1_0
+        ]
+        
+        do {
+            let matrix = Matrix<Float>((3, 5), any: 0..<15)
             let sum = try matrix.sum().asValue()
             XCTAssert(sum == 105.0)
         } catch {
