@@ -67,7 +67,7 @@ class test_Syntax: XCTestCase {
             vulkanApplicationVersion : 41,
             vulkanEngineName : "MyEngine",
             vulkanEngineVersion : 42,
-            vulkanApiVersion : VK_VERSION_1_0
+            vulkanApiVersion : VK_API_VERSION_1_0
         ]
         
         do {

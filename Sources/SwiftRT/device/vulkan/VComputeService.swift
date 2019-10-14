@@ -24,6 +24,19 @@ public let vulkanEngineVersion = "engineVersion"
 public let vulkanApiVersion = "apiVersion"
 
 //==============================================================================
+// VK_MAKE_VERSION
+// macros don't make it through the bridging process, so redefine it here
+public func VK_MAKE_VERSION(_ major: Int, _ minor: Int, _ patch: Int) -> Int32 {
+    return Int32((major << 22) | (minor << 12) | patch)
+}
+
+// Vulkan 1.0 version number
+// Patch version should always be set to 0
+public let VK_API_VERSION_1_0 = VK_MAKE_VERSION(1, 0, 0)
+// Vulkan 1.1 version number
+public let VK_API_VERSION_1_1 = VK_MAKE_VERSION(1, 1, 0)
+
+//==============================================================================
 // VulkanComputeService
 public final class VulkanComputeService: LocalComputeService {
     // service protocol properties
@@ -105,7 +118,6 @@ public final class VulkanComputeService: LocalComputeService {
                 return $0.baseAddress!.assumingMemoryBound(to: CChar.self)
             }
             if String(cString: layerNamePointer) == stdName {
-                print(String(cString: layerNamePointer))
                 enabledLayers.append(layerNamePointer)
                 break
             }
@@ -135,7 +147,6 @@ public final class VulkanComputeService: LocalComputeService {
             }
             
             if String(cString: extensionNamePointer) == extName {
-                print(String(cString: extensionNamePointer))
                 enabledExtensions.append(extensionNamePointer)
                 break
             }
@@ -160,7 +171,7 @@ public final class VulkanComputeService: LocalComputeService {
             UInt32((getValue(for: vulkanEngineVersion) as? Int) ?? 0)
         
         let apiVersion = UInt32((getValue(for: vulkanApiVersion) as? Int32) ??
-            VK_VERSION_1_1)
+            VK_API_VERSION_1_1)
 
         // initialize the VkApplicationInfo.
         var applicationInfo = VkApplicationInfo(
