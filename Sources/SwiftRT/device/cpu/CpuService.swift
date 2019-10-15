@@ -16,8 +16,8 @@
 import Foundation
 
 //==============================================================================
-/// CpuComputeService
-public class CpuComputeService : LocalComputeService {
+/// CpuService
+public class CpuService : LocalComputeService {
     // properties
     public private(set) weak var platform: ComputePlatform!
     public private(set) var trackingId = 0

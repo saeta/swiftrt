@@ -60,8 +60,8 @@ public extension LocalPlatform {
         var loadedServices = [String: ComputeService]()
         do {
             // add required cpu service
-            let cpuService = try CpuComputeService(platform: Platform.local,
-                                                   id: 0, logInfo: logInfo)
+            let cpuService = try CpuService(platform: Platform.local,
+                                            id: 0, logInfo: logInfo)
             loadedServices[cpuService.name] = cpuService
             
             // add cpu unit test service
