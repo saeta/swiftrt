@@ -144,16 +144,12 @@ public extension LocalComputeService {
 public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     //-------------------------------------
     // properties
-    /// a dictionary of device specific attributes describing the device
-    var attributes: [String: String] { get }
-    /// the amount of free memory currently available on the device
-    var availableMemory: UInt64 { get }
     /// a key to lookup device array replicas
     var deviceArrayReplicaKey: Int { get }
-    /// the id of the device for example gpu:0
+    /// parameters defining maximum device capabilties
+    var limits: DeviceLimits { get }
+    /// the id of the device for example dev:0
     var id: Int { get }
-    /// the maximum number of threads supported per block
-    var maxThreadsPerBlock: Int { get }
     /// the name of the device
     var name: String { get }
     /// the service this device belongs to
@@ -162,24 +158,33 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     var timeout: TimeInterval? { get set }
     /// the type of memory addressing this device uses
     var memoryAddressing: MemoryAddressing { get }
-    /// current percent of the device utilized
-    var utilization: Float { get }
 
     //-------------------------------------
     // device resource functions
     /// creates an array on this device
     func createArray(count: Int) throws -> DeviceArray
     /// creates a device array from a uma buffer.
+    func createReferenceArray(buffer: UnsafeRawBufferPointer) -> DeviceArray
+    /// creates a device array from a uma buffer.
     func createMutableReferenceArray(buffer: UnsafeMutableRawBufferPointer)
         -> DeviceArray
-    /// creates a device array from a uma buffer.
-    func createReferenceArray(buffer: UnsafeRawBufferPointer) -> DeviceArray
     /// creates a named command queue for this device
     /// - Parameter isStatic: if `true` the object will not be tracked
     func createQueue(name: String, isStatic: Bool) throws -> DeviceQueue
 }
 
 public enum MemoryAddressing { case unified, discreet }
+
+//==============================================================================
+/// DeviceLimits
+/// parameters defining maximum device capabilties
+public struct DeviceLimits {
+    let maxComputeSharedMemorySize: Int
+    let maxComputeWorkGroupCount: (Int, Int, Int)
+    let maxComputeWorkGroupInvocations: Int
+    let maxComputeWorkGroupSize: (Int, Int, Int)
+    let maxMemoryAllocationCount: Int
+}
 
 //==============================================================================
 /// LocalComputeDevice

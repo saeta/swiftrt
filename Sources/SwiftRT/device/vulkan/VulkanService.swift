@@ -16,29 +16,9 @@
 import Foundation
 import CVulkan
 
-// TODO: have discussion about configuration property naming conventions
-public let vulkanApplicationName = "applicationName"
-public let vulkanApplicationVersion = "applicationVersion"
-public let vulkanEngineName = "engineName"
-public let vulkanEngineVersion = "engineVersion"
-public let vulkanApiVersion = "apiVersion"
-
 //==============================================================================
-// VK_MAKE_VERSION
-// macros don't make it through the bridging process, so redefine it here
-public func VK_MAKE_VERSION(_ major: Int, _ minor: Int, _ patch: Int) -> Int32 {
-    return Int32((major << 22) | (minor << 12) | patch)
-}
-
-// Vulkan 1.0 version number
-// Patch version should always be set to 0
-public let VK_API_VERSION_1_0 = VK_MAKE_VERSION(1, 0, 0)
-// Vulkan 1.1 version number
-public let VK_API_VERSION_1_1 = VK_MAKE_VERSION(1, 1, 0)
-
-//==============================================================================
-// VulkanComputeService
-public final class VulkanComputeService: LocalComputeService {
+// VulkanService
+public final class VulkanService: LocalComputeService {
     // service protocol properties
     public private(set) weak var platform: ComputePlatform!
     public private(set) var trackingId = 0
@@ -78,8 +58,8 @@ public final class VulkanComputeService: LocalComputeService {
         // create the vulkan instance
         instance = try createVkInstance()
         
-        // create compute device for each physical vulkan device
-        try createDevices()
+        // create a ComputeDevice for each physical vulkan device
+        try createComputeDevices()
         
         // this is held statically by the Platform
         trackingId = ObjectTracker.global.register(self, isStatic: true)
@@ -274,10 +254,32 @@ public final class VulkanComputeService: LocalComputeService {
     }
 
     //--------------------------------------------------------------------------
-    // createDevices
+    // createComputeDevices
     // Create a ComputeDevice for each physical vulkan device
-    private func createDevices() throws {
+    private func createComputeDevices() throws {
         // get the device count
-//        let deviceCount
+        var deviceCount: UInt32 = 0
+        try vkCheck(vkEnumeratePhysicalDevices(instance, &deviceCount, nil))
+        if deviceCount == 0 {
+            writeLog("No vulkan devices found", level: .warning)
+        }
+        
+        // get the physical device list
+        var physicalDevices = [VkPhysicalDevice?](repeating: nil,
+                                                  count: Int(deviceCount))
+        try vkCheck(vkEnumeratePhysicalDevices(instance, &deviceCount,
+                                               &physicalDevices))
+        
+        //-----------------------------------
+        // create a logical device for each physical device
+        for (i, physicalDevice) in physicalDevices.enumerated() {
+            // create logical device
+            let logicalDevice =
+                try VulkanDevice(service: self,
+                                 physicalDevice: physicalDevice!,
+                                 deviceId: i,
+                                 logInfo: logInfo.flat("dev:\(i)"),
+                                 timeout: timeout)
+        }
     }
 }

@@ -20,25 +20,18 @@ public class CpuDevice: LocalComputeDevice {
     //--------------------------------------------------------------------------
     // properties
     public private(set) var trackingId = 0
-    public let attributes = [String : String]()
     public let deviceArrayReplicaKey = Platform.nextUniqueDeviceId
     public let id: Int
     public var logInfo: LogInfo
-    public var maxThreadsPerBlock: Int { return 1 }
     public let name: String
     public weak var service: ComputeService!
     private let queueId = AtomicCounter(value: -1)
     public var timeout: TimeInterval?
     public let memoryAddressing: MemoryAddressing
-    public var utilization: Float = 0
     public var deviceErrorHandler: DeviceErrorHandler?
+    public var limits: DeviceLimits
     public var _lastError: Error? = nil
     public var _errorMutex: Mutex = Mutex()
-
-    // TODO this should be currently available and not physicalMemory
-    public lazy var availableMemory: UInt64 = {
-        return ProcessInfo.processInfo.physicalMemory
-    }()
 
     //--------------------------------------------------------------------------
 	// initializers
@@ -53,6 +46,15 @@ public class CpuDevice: LocalComputeDevice {
 		self.service = service
         self.timeout = timeout
         self.memoryAddressing = memoryAddressing
+        
+        // TODO: determine meaningful values, not currently used
+        self.limits = DeviceLimits(
+            maxComputeSharedMemorySize: 1,
+            maxComputeWorkGroupCount: (1, 1, 1),
+            maxComputeWorkGroupInvocations: 1,
+            maxComputeWorkGroupSize: (1, 1, 1),
+            maxMemoryAllocationCount: 1
+        )
 
 		// devices are statically held by the Platform.service
         trackingId = ObjectTracker.global

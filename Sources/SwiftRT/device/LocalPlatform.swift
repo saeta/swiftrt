@@ -76,7 +76,7 @@ public extension LocalPlatform {
             // static inclusions
 //            #if VULKAN
             let vulkanService =
-                try VulkanComputeService(platform: Platform.local,
+                try VulkanService(platform: Platform.local,
                                          id: loadedServices.count,
                                          logInfo: logInfo)
             loadedServices[vulkanService.name] = vulkanService
