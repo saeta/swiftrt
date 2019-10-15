@@ -94,10 +94,13 @@ public final class VulkanService: LocalComputeService {
         let stdName = "VK_LAYER_LUNARG_standard_validation"
         for i in 0..<layerProps.count {
             // point to retained string tuple
-            let layerNamePointer = withUnsafeBytes(of: &layerProps[i].layerName) {
+            let layerNamePointer = withUnsafeBytes(of: &layerProps[i].layerName)
+            {
                 return $0.baseAddress!.assumingMemoryBound(to: CChar.self)
             }
             if String(cString: layerNamePointer) == stdName {
+                // retain the C pointer to be handed back later
+                // this is safe because layerProps is in the same scope
                 enabledLayers.append(layerNamePointer)
                 break
             }
@@ -127,6 +130,8 @@ public final class VulkanService: LocalComputeService {
             }
             
             if String(cString: extensionNamePointer) == extName {
+                // retain the C pointer to be handed back later
+                // this is safe because extensionProps is in the same scope
                 enabledExtensions.append(extensionNamePointer)
                 break
             }
@@ -138,13 +143,13 @@ public final class VulkanService: LocalComputeService {
 
         //-----------------------------------
         // get optional application name from vulkan properties
-        var cApplicationName = getPropertyCString(for: vulkanApplicationName)
+        var cApplicationName = mallocPropertyCString(for: vulkanApplicationName)
         defer { free(cApplicationName) }
         let applicationVersion =
             UInt32((getValue(for: vulkanApplicationVersion) as? Int) ?? 0)
         
         // get optional engine name from vulkan properties
-        var cEngineName = getPropertyCString(for: vulkanEngineName)
+        var cEngineName = mallocPropertyCString(for: vulkanEngineName)
         defer { free(cEngineName) }
         
         let engineVersion =
@@ -230,14 +235,14 @@ public final class VulkanService: LocalComputeService {
     }
     
     //--------------------------------------------------------------------------
-    // getPropertyCString
-    // retrieves a String property value from the Platform.serviceProperties
+    // mallocPropertyCString
+    // retrieves a String property value from the Platform.properties
     // dictionary and converts the value into a CString.
     // NOTE: It is the callers responsibility to `free` the CString after use
-    private func getPropertyCString(for property: String) ->
+    private func mallocPropertyCString(for property: String) ->
         UnsafeMutablePointer<Int8>?
     {
-        if let value = Platform.serviceProperties[self.name]?[property] {
+        if let value = Platform.local.properties[self.name]?[property] {
             assert(value is String, "\(property) must be of type String")
             return strdup(value as! String)
         } else {
@@ -250,7 +255,7 @@ public final class VulkanService: LocalComputeService {
     // retrieves a property value from the Platform.serviceProperties dictionary
     // The caller must cast Any to the known value type before use
     private func getValue(for property: String) -> Any? {
-        return Platform.serviceProperties[self.name]?[property]
+        return Platform.local.properties[self.name]?[property]
     }
 
     //--------------------------------------------------------------------------

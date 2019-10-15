@@ -35,9 +35,7 @@ import Foundation
 public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     /// global shared instance
     static var local: Platform { get }
-    /// the root log
-    static var log: Log { get set }
-
+    
     // instance members
     /// a device automatically selected based on service priority
     var defaultDevice: ComputeDevice { get }
@@ -46,14 +44,15 @@ public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     /// the platform id. Usually zero, but can be assigned in case a higher
     /// level object (e.g. cluster) will maintain a platform collection
     var id: Int { get set }
+    /// the root log
+    var log: Log { get set }
+    /// dictionary of configuration property sets
+    /// [service name : [property name : property type specific value]]
+    var properties: [String : [String : Any]] { get set }
     /// location of dynamically loaded service modules
     var serviceModuleDirectory: URL { get set }
     /// ordered list of service names specifying the order for auto selection
     var servicePriority: [String] { get set }
-    /// dictionary of service configuration property sets
-    /// Key is service name, value is serive property set
-    /// Property set [property name : any type specific value]
-    static var serviceProperties: [String : [String : Any]] { get set }
     /// a dynamically loaded collection of available compute services.
     /// The "cpu" service will always be available
     var services: [String : ComputeService] { get }

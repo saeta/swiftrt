@@ -35,8 +35,8 @@ public extension LocalPlatform {
     /// device queue hierarchy, but can be overridden at any point down
     /// the tree
     static var log: Log {
-        get { return Platform.local.logInfo.log }
-        set { Platform.local.logInfo.log = newValue }
+        get { return Platform.local.log }
+        set { Platform.local.log = newValue }
     }
     
     //--------------------------------------------------------------------------
@@ -238,7 +238,7 @@ final public class Platform: LocalPlatform {
     public static let local = Platform()
     public var serviceModuleDirectory = URL(fileURLWithPath: "TODO")
     public var servicePriority = ["cpu", "vulkan", "cuda"]
-    public static var serviceProperties = [String : [String : Any]]()
+    public var properties = [String : [String : Any]]()
     public lazy var services: [String : ComputeService] = {
         loadServices()
         return Platform._services!
@@ -259,6 +259,16 @@ final public class Platform: LocalPlatform {
         return Platform.queueIdCounter.increment()
     }
 
+    //--------------------------------------------------------------------------
+    /// log
+    /// the caller can specify a root log which will be inherited by the
+    /// device queue hierarchy, but can be overridden at any point down
+    /// the tree
+    public var log: Log {
+        get { return logInfo.log }
+        set { logInfo.log = newValue }
+    }
+    
     //--------------------------------------------------------------------------
     // initializers
     /// `init` is private because this is a singleton. Use the `local` static

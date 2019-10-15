@@ -62,7 +62,7 @@ class test_Syntax: XCTestCase {
         Platform.log.level = .diagnostic
         Platform.log.categories = [.properties]
         Platform.local.servicePriority = ["vulkan"]
-        Platform.serviceProperties["vulkan"] = [
+        Platform.local.properties["vulkan"] = [
             vulkanApplicationName : "MyApp",
             vulkanApplicationVersion : 41,
             vulkanEngineName : "MyEngine",
