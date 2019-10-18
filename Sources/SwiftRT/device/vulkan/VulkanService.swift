@@ -279,8 +279,8 @@ public final class VulkanService: LocalComputeService {
         // create a logical device for each physical device
         for (i, physicalDevice) in physicalDevices.enumerated() {
             // create logical device
-            let logicalDevice =
-                try VulkanDevice(service: self,
+//            let logicalDevice =
+              _ =  try VulkanDevice(service: self,
                                  physicalDevice: physicalDevice!,
                                  deviceId: i,
                                  logInfo: logInfo.flat("dev:\(i)"),
