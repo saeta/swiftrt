@@ -32,7 +32,8 @@ public class CpuDevice: LocalComputeDevice {
     public var limits: DeviceLimits
     public var _lastError: Error? = nil
     public var _errorMutex: Mutex = Mutex()
-
+    public var heaps: [DeviceHeapProperties]
+    
     //--------------------------------------------------------------------------
 	// initializers
 	public init(service: ComputeService,
@@ -55,6 +56,9 @@ public class CpuDevice: LocalComputeDevice {
             maxComputeWorkGroupSize: (1, 1, 1),
             maxMemoryAllocationCount: 1
         )
+        
+        // TODO:
+        self.heaps = []
 
 		// devices are statically held by the Platform.service
         trackingId = ObjectTracker.global

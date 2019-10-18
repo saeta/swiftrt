@@ -18,7 +18,7 @@ import CVulkan
 
 public class VulkanDevice : LocalComputeDevice {
     //--------------------------------------------------------------------------
-    // properties
+    // conformance properties
     public private(set) var trackingId = 0
     public private (set) weak var service: ComputeService!
     public var deviceArrayReplicaKey = Platform.nextUniqueDeviceId
@@ -32,12 +32,11 @@ public class VulkanDevice : LocalComputeDevice {
     public var limits: DeviceLimits
     public var _lastError: Error? = nil
     public var _errorMutex: Mutex = Mutex()
+    public private(set) var heaps = [DeviceHeapProperties]()
 
-    // TODO this should be currently available and not physicalMemory
-    public lazy var availableMemory: UInt64 = {
-        return ProcessInfo.processInfo.physicalMemory
-    }()
-
+    // implementation specific properties
+    public let physicalDevice: VkPhysicalDevice
+    
     //--------------------------------------------------------------------------
     // initializers
     public init(service: VulkanService,
@@ -46,13 +45,14 @@ public class VulkanDevice : LocalComputeDevice {
                 logInfo: LogInfo,
                 timeout: TimeInterval?) throws
     {
-        self.logInfo = logInfo
-        self.id = deviceId
         self.service = service
+        self.physicalDevice = physicalDevice
+        self.id = deviceId
+        self.logInfo = logInfo
         self.timeout = timeout
         self.memoryAddressing = .discreet // TODO: query this
         
-        // query limits
+        // query device limits
         var deviceProperties = VkPhysicalDeviceProperties()
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties)
         self.limits = DeviceLimits(limits: deviceProperties.limits)
@@ -64,11 +64,28 @@ public class VulkanDevice : LocalComputeDevice {
         }
         self.name = String(cString: deviceNamePointer)
         
+        //
+        getDeviceMemoryProperties()
+        
         // devices are statically held by the Platform.service
         trackingId = ObjectTracker.global
                 .register(self, namePath: logNamePath, isStatic: true)
     }
     deinit { ObjectTracker.global.remove(trackingId: trackingId) }
+    
+    //--------------------------------------------------------------------------
+    // getDeviceMemoryProperties
+    private func getDeviceMemoryProperties() {
+        var memoryProperties = VkPhysicalDeviceMemoryProperties()
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties)
+
+        let count = Int(memoryProperties.memoryTypeCount)
+        let memoryTypes = withUnsafeMutablePointer(to: &memoryProperties.memoryTypes) { $0 }
+        let rebound = memoryTypes.withMemoryRebound(to: VkMemoryType.self, capacity: count) { $0 }
+        for i in 0..<count {
+            print(String(describing: MemoryAttributes(flags: rebound[i].propertyFlags)))
+        }
+    }
 
     //--------------------------------------------------------------------------
     // createArray

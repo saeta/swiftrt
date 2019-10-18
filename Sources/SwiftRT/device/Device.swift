@@ -145,6 +145,8 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     // properties
     /// a key to lookup device array replicas
     var deviceArrayReplicaKey: Int { get }
+    /// a list of available device heaps and their properties
+    var heaps: [DeviceHeapProperties] { get }
     /// parameters defining maximum device capabilties
     var limits: DeviceLimits { get }
     /// the id of the device for example dev:0
@@ -183,6 +185,54 @@ public struct DeviceLimits {
     let maxComputeWorkGroupInvocations: Int
     let maxComputeWorkGroupSize: (Int, Int, Int)
     let maxMemoryAllocationCount: Int
+}
+
+//==============================================================================
+/// MemoryAttributes
+// https://vulkan.lunarg.com/doc/view/latest/windows/apispec.html#VkMemoryPropertyFlagBits
+public struct MemoryAttributes: OptionSet, CustomStringConvertible {
+    public let rawValue: Int
+
+    public init(rawValue: Int) { self.rawValue = rawValue }
+    
+    static let deviceLocal       = MemoryAttributes(rawValue: 1 << 0)
+    static let hostVisible       = MemoryAttributes(rawValue: 1 << 1)
+    static let hostCoherent      = MemoryAttributes(rawValue: 1 << 2)
+    static let hostCached        = MemoryAttributes(rawValue: 1 << 3)
+    static let lazilyAllocated   = MemoryAttributes(rawValue: 1 << 4)
+    static let protected         = MemoryAttributes(rawValue: 1 << 5)
+    static let deviceCoherentAMD = MemoryAttributes(rawValue: 1 << 6)
+    static let deviceUncachedAMD = MemoryAttributes(rawValue: 1 << 7)
+    
+    public var description: String {
+        var string = "["
+        if self.contains(.deviceLocal) { string += ".deviceLocal, " }
+        if self.contains(.hostVisible) { string += ".hostVisible, " }
+        if self.contains(.hostCoherent) { string += ".hostCoherent, " }
+        if self.contains(.hostCached) { string += ".hostCached, " }
+        if self.contains(.lazilyAllocated) { string += ".lazilyAllocated, " }
+        if self.contains(.protected) { string += ".protected, " }
+        if self.contains(.deviceCoherentAMD) { string += ".deviceCoherentAMD, "}
+        if self.contains(.deviceUncachedAMD) { string += ".deviceUncachedAMD, "}
+        string.removeLast(2)
+        string += "]"
+        return string
+    }
+}
+
+//==============================================================================
+/// DeviceHeapProperties
+public struct DeviceHeapProperties {
+    /// heap total memory size in bytes
+    let size: Int
+    /// a set of flags describing the memory attributes
+    let attributes: MemoryAttributes
+}
+
+//==============================================================================
+/// DeviceMemoryBudget
+public struct DeviceMemoryBudget {
+    
 }
 
 //==============================================================================
