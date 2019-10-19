@@ -358,7 +358,8 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         } else {
             // create the replica device array
             let byteCount = MemoryLayout<Element>.size * count
-            let array = try queue.device.createArray(count: byteCount)
+            let array = try queue.device.createArray(count: byteCount,
+                                                     heapIndex: 0)
             diagnostic("\(allocString) \(name)(\(trackingId)) " +
                 "device array on \(queue.device.name) " +
                 "\(String(describing: Element.self))[\(count)]",

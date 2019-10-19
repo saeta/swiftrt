@@ -62,7 +62,7 @@ extension MemoryAttributes {
 //==============================================================================
 /// LocalComputeDevice queryMemoryBudget
 extension LocalComputeDevice {
-    public func queryMemoryBudget() -> DeviceMemoryBudget {
+    public func queryMemoryBudget() -> MemoryBudget {
         fatalError()
     }
 }

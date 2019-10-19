@@ -16,13 +16,6 @@
 import Foundation
 import CVulkan
 
-// TODO: have discussion about configuration property naming conventions
-public let vulkanApplicationName = "applicationName"
-public let vulkanApplicationVersion = "applicationVersion"
-public let vulkanEngineName = "engineName"
-public let vulkanEngineVersion = "engineVersion"
-public let vulkanApiVersion = "apiVersion"
-
 //==============================================================================
 // VK_MAKE_VERSION
 // macros don't make it through the bridging process, so redefine it here

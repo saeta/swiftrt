@@ -18,18 +18,6 @@
 import Foundation
 
 //==============================================================================
-/// DataType
-/// Used primarily for serialization, C APIs, and Cuda kernels
-public enum DataType: Int {
-    // integers
-    case real8U, real8I, real16U, real16I, real32U, real32I, real64U, real64I
-    // floats
-    case real16F, real32F, real64F
-    // non numeric
-    case bool
-}
-
-//==============================================================================
 /// AnyScalar
 public protocol AnyScalar {
     init()
@@ -77,7 +65,7 @@ public protocol AnyConvertable: AnyFixedSizeScalar, CVarArg {
     static var normScalef: Float { get }
 	var isFiniteValue: Bool { get }
     static var isFiniteType: Bool { get }
-    static var dataType: DataType { get }
+    static var scalarType: ScalarType { get }
     static func formatString(_ format: (width: Int, precision: Int)?) -> String
 }
 
@@ -121,7 +109,7 @@ extension Int8: AnyInteger {
     
     public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType { return .real8U }
+    public static var scalarType: ScalarType { return .real8U }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 4)hhu"
     }
@@ -167,7 +155,7 @@ extension UInt8: AnyInteger {
 
 	public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType { return .real8U }
+    public static var scalarType: ScalarType { return .real8U }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 4)hhu"
     }
@@ -213,7 +201,7 @@ extension UInt16 : AnyInteger {
 
 	public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType { return .real16U }
+    public static var scalarType: ScalarType { return .real16U }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 6)hu"
     }
@@ -259,7 +247,7 @@ extension Int16 : AnyInteger {
 
 	public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType { return .real16I }
+    public static var scalarType: ScalarType { return .real16I }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 6)hd"
     }
@@ -305,7 +293,7 @@ extension Int32 : AnyInteger {
 
 	public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType { return .real32I }
+    public static var scalarType: ScalarType { return .real32I }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 6)d"
     }
@@ -351,7 +339,7 @@ extension UInt32 : AnyInteger {
     
     public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType { return .real32U }
+    public static var scalarType: ScalarType { return .real32U }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 6)u"
     }
@@ -397,8 +385,8 @@ extension Int : AnyInteger {
 
 	public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType = {
-        let index: [DataType] = [.real8I, .real16I, .real32I, .real64I]
+    public static var scalarType: ScalarType = {
+        let index: [ScalarType] = [.real8I, .real16I, .real32I, .real64I]
         return index[MemoryLayout<Int>.size - 1]
     }()
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
@@ -446,8 +434,8 @@ extension UInt : AnyInteger {
 
 	public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType = {
-        let index: [DataType] = [.real8U, .real16U, .real32U, .real64U]
+    public static var scalarType: ScalarType = {
+        let index: [ScalarType] = [.real8U, .real16U, .real32U, .real64U]
         return index[MemoryLayout<Int>.size - 1]
     }()
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
@@ -495,7 +483,7 @@ extension Bool: AnyConvertable {
 
 	public var isFiniteValue: Bool { return true }
     public static var isFiniteType: Bool { return true }
-    public static var dataType: DataType { return .bool }
+    public static var scalarType: ScalarType { return .bool }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 6)S"
     }
@@ -540,7 +528,7 @@ extension Float : AnyFloatingPoint {
     public static var normScalef: Float = 1
 	public var isFiniteValue: Bool { return self.isFinite }
     public static var isFiniteType: Bool { return false }
-    public static var dataType: DataType { return .real32F }
+    public static var scalarType: ScalarType { return .real32F }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 9).\(format?.precision ?? 3)f"
     }
@@ -585,7 +573,7 @@ extension Double : AnyFloatingPoint {
     public static var normScalef: Float = 1
 	public var isFiniteValue: Bool { return self.isFinite }
     public static var isFiniteType: Bool { return false }
-    public static var dataType: DataType { return .real64F }
+    public static var scalarType: ScalarType { return .real64F }
     public static func formatString(_ format: (width: Int, precision: Int)?) -> String {
         return "%\(format?.width ?? 9).\(format?.precision ?? 3)f"
     }

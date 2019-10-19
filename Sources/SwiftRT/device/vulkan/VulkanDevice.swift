@@ -30,9 +30,9 @@ public class VulkanDevice : LocalComputeDevice {
     public let memoryAddressing: MemoryAddressing
     public var deviceErrorHandler: DeviceErrorHandler?
     public var limits: DeviceLimits
+    public let memory: MemoryProperties
     public var _lastError: Error? = nil
     public var _errorMutex: Mutex = Mutex()
-    public private(set) var heaps = [DeviceHeapProperties]()
 
     // implementation specific properties
     public let physicalDevice: VkPhysicalDevice
@@ -64,9 +64,23 @@ public class VulkanDevice : LocalComputeDevice {
         }
         self.name = String(cString: deviceNamePointer)
         
-        //
-        getDeviceMemoryProperties()
+        //------------------------------------
+        // TODO: get device memory properties
+        let heaps = [MemoryHeap]()
+        var memoryProperties = VkPhysicalDeviceMemoryProperties()
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties)
         
+        let count = Int(memoryProperties.memoryTypeCount)
+        _ = withUnsafeMutablePointer(to: &memoryProperties.memoryTypes) {
+            $0.withMemoryRebound(to: VkMemoryType.self, capacity: count) {
+                for i in 0..<count {
+                    print(String(describing: MemoryAttributes(flags: $0[i].propertyFlags)))
+                }
+            }
+        }
+        self.memory = MemoryProperties(heaps: heaps)
+
+        // register device with the object tracker.
         // devices are statically held by the Platform.service
         trackingId = ObjectTracker.global
                 .register(self, namePath: logNamePath, isStatic: true)
@@ -74,22 +88,10 @@ public class VulkanDevice : LocalComputeDevice {
     deinit { ObjectTracker.global.remove(trackingId: trackingId) }
     
     //--------------------------------------------------------------------------
-    // getDeviceMemoryProperties
-    private func getDeviceMemoryProperties() {
-        var memoryProperties = VkPhysicalDeviceMemoryProperties()
-        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties)
-
-        let count = Int(memoryProperties.memoryTypeCount)
-        let memoryTypes = withUnsafeMutablePointer(to: &memoryProperties.memoryTypes) { $0 }
-        let rebound = memoryTypes.withMemoryRebound(to: VkMemoryType.self, capacity: count) { $0 }
-        for i in 0..<count {
-            print(String(describing: MemoryAttributes(flags: rebound[i].propertyFlags)))
-        }
-    }
-
-    //--------------------------------------------------------------------------
     // createArray
-    public func createArray(count: Int) throws -> DeviceArray {
+    public func createArray(count: Int, heapIndex: Int = 0) throws
+        -> DeviceArray
+    {
 //        return try CudaDeviceArray(device: self, count: count)
         fatalError()
     }

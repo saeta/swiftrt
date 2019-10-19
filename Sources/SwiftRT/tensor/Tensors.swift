@@ -108,8 +108,9 @@ public extension ScalarView {
 // ScalarValue
 public struct ScalarValue<Element>: ScalarView {
     // properties
-    public let shape: DataShape
     public let isShared: Bool
+    public let format: TensorFormat = .scalar
+    public let shape: DataShape
     public var tensorArray: TensorArray<Element>
     public var viewOffset: Int
     
@@ -229,6 +230,7 @@ public extension VectorView {
 public struct Vector<Element>: VectorView {
     // properties
     public let isShared: Bool
+    public let format: TensorFormat = .vector
     public let shape: DataShape
     public var tensorArray: TensorArray<Element>
     public var viewOffset: Int
@@ -376,6 +378,7 @@ public extension MatrixView {
 public struct Matrix<Element>: MatrixView {
     // properties
     public let isShared: Bool
+    public let format: TensorFormat = .matrix
     public let shape: DataShape
     public var tensorArray: TensorArray<Element>
     public var viewOffset: Int
@@ -505,6 +508,7 @@ public extension VolumeView {
 public struct Volume<Element>: VolumeView {
     // properties
     public let isShared: Bool
+    public let format: TensorFormat = .volume
     public let shape: DataShape
     public var tensorArray: TensorArray<Element>
     public var viewOffset: Int
@@ -617,6 +621,7 @@ public extension NDTensorView {
 public struct NDTensor<Element>: NDTensorView {
     // properties
     public let isShared: Bool
+    public var format: TensorFormat = .vector
     public let shape: DataShape
     public var tensorArray: TensorArray<Element>
     public var viewOffset: Int
@@ -757,6 +762,7 @@ public extension NCHWTensorView {
 public struct NCHWTensor<Element>: NCHWTensorView {
     // properties
     public let isShared: Bool
+    public let format: TensorFormat = .nchw
     public let shape: DataShape
     public var tensorArray: TensorArray<Element>
     public var viewOffset: Int
@@ -897,6 +903,7 @@ public extension NHWCTensorView {
 public struct NHWCTensor<Element>: NHWCTensorView {
     // properties
     public let isShared: Bool
+    public let format: TensorFormat = .nhwc
     public let shape: DataShape
     public var tensorArray: TensorArray<Element>
     public var viewOffset: Int

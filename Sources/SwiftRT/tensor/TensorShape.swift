@@ -17,6 +17,7 @@ import Foundation
 
 //==============================================================================
 // TensorShape
+// TODO: rename
 public struct DataShape: Equatable, Codable {
     //--------------------------------------------------------------------------
     // properties
@@ -238,16 +239,3 @@ public struct DataShape: Equatable, Codable {
     }
 }
 
-////==============================================================================
-//// Legacy TensorFlow.TensorShape
-//public extension DataShape {
-//    init(legacy shape: TensorFlow.TensorShape) {
-//        self.init(extents: shape.dimensions.map { Int($0) })
-//    }
-//}
-//
-//public extension TensorFlow.TensorShape {
-//    init(_ shape: SwiftRT.DataShape) {
-//        self = TensorFlow.TensorShape(shape.extents)
-//    }
-//}

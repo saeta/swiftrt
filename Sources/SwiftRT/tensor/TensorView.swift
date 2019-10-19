@@ -58,15 +58,14 @@ public protocol TensorView: Logging {
     associatedtype IndexView: TensorView where IndexView.Element == IndexElement
 
     //--------------------------------------------------------------------------
-    // Readonly properties for the caller begin with an underscore. Accessor
-    // functions with correct access are exposed as protocol extensions.
-    // this gives full access to protocol default implementations.
-
+    // properties
     /// returns an index one past the end of the tensor used for collections
     var endIndex: Index { get }
     /// used internally when obtaining write access to manage
     /// multi-threaded writes without causing `tensorArray` copy on write.
     var isShared: Bool { get }
+    /// format describes how to interpret the meaning of each dimension
+    var format: TensorFormat { get }
     /// the shape of the view used for indexing
     var shape: DataShape { get }
     /// returns the first tensor index used for collections
@@ -108,6 +107,39 @@ public protocol TensorView: Logging {
 /// IndexElement
 /// The data type used for tensors that contain tensor spatial index values
 public typealias IndexElement = Int32
+
+//==============================================================================
+/// ScalarType
+/// Used primarily for serialization, C APIs, and Cuda kernels
+// TODO: maybe remove this after Cuda integration if not used
+public enum ScalarType: Int {
+    // integers
+    case real8U, real8I, real16U, real16I, real32U, real32I, real64U, real64I
+    // floats
+    case real16F, real32F, real64F
+    // non numeric
+    case bool
+}
+
+//==============================================================================
+/// TensorFormat
+/// an enumeration describing how to interpret the meaning of each
+/// dimension in a tensor.
+///
+/// n: the number of items in the set
+/// d: the number of depths per item
+/// h: the number of rows per depth
+/// w: the number of columns in a row
+/// c: the number of channels per column
+// https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#tensor-descriptor
+public enum TensorFormat: Int, Codable {
+    // simple 0-3D layouts
+    case scalar, vector, matrix, volume
+    /// 4D layouts
+    case nchw, nhwc
+    /// 5D layouts
+    case ncdhw, ndhwc
+}
 
 //==============================================================================
 // TensorView default implementation

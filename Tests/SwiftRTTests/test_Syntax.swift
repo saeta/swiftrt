@@ -61,8 +61,8 @@ class test_Syntax: XCTestCase {
     func test_setServiceProperties() {
         Platform.log.level = .diagnostic
         Platform.log.categories = [.properties]
-        Platform.local.servicePriority = ["vulkan"]
-        Platform.local.properties["vulkan"] = [
+        Platform.local.servicePriority = [vulkanService]
+        Platform.local.properties[vulkanService] = [
             vulkanApplicationName : "MyApp",
             vulkanApplicationVersion : 41,
             vulkanEngineName : "MyEngine",

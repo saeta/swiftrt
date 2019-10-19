@@ -17,7 +17,7 @@
 //
 //  ComputePlatform
 //      services[]
-//        ComputeService (cpu, vulkan, cuda, ...)
+//        ComputeService (cpu, cuda, vulkan, ...)
 //          devices[]
 //            ComputeDevice (dev:0, dev:1, ...)
 //              DeviceArray
@@ -145,8 +145,8 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     // properties
     /// a key to lookup device array replicas
     var deviceArrayReplicaKey: Int { get }
-    /// a list of available device heaps and their properties
-    var heaps: [DeviceHeapProperties] { get }
+    /// describes the devices memory properties and available heaps
+    var memory: MemoryProperties { get }
     /// parameters defining maximum device capabilties
     var limits: DeviceLimits { get }
     /// the id of the device for example dev:0
@@ -163,7 +163,7 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     //-------------------------------------
     // device resource functions
     /// creates an array on this device
-    func createArray(count: Int) throws -> DeviceArray
+    func createArray(count: Int, heapIndex: Int) throws -> DeviceArray
     /// creates a device array from a uma buffer.
     func createReferenceArray(buffer: UnsafeRawBufferPointer) -> DeviceArray
     /// creates a device array from a uma buffer.
@@ -189,31 +189,40 @@ public struct DeviceLimits {
 
 //==============================================================================
 /// MemoryAttributes
+// TODO: get and reword descriptions so that they make sense in our context.
+// Some of these types maybe be eliminated if they are doing managed memory
+// schemes by mappi the device memory into the host virtual address space.
+// This mechanism is convenient but at least on Cuda has very poor performance
+// and explicit memory transfers are much faster.
 // https://vulkan.lunarg.com/doc/view/latest/windows/apispec.html#VkMemoryPropertyFlagBits
 public struct MemoryAttributes: OptionSet, CustomStringConvertible {
     public let rawValue: Int
 
     public init(rawValue: Int) { self.rawValue = rawValue }
     
-    static let deviceLocal       = MemoryAttributes(rawValue: 1 << 0)
-    static let hostVisible       = MemoryAttributes(rawValue: 1 << 1)
-    static let hostCoherent      = MemoryAttributes(rawValue: 1 << 2)
-    static let hostCached        = MemoryAttributes(rawValue: 1 << 3)
-    static let lazilyAllocated   = MemoryAttributes(rawValue: 1 << 4)
-    static let protected         = MemoryAttributes(rawValue: 1 << 5)
-    static let deviceCoherentAMD = MemoryAttributes(rawValue: 1 << 6)
-    static let deviceUncachedAMD = MemoryAttributes(rawValue: 1 << 7)
+    /// this type is the most efficient for local device access
+    static let deviceLocal     = MemoryAttributes(rawValue: 1 << 0)
+    static let deviceCoherent  = MemoryAttributes(rawValue: 1 << 1)
+    static let deviceUncached  = MemoryAttributes(rawValue: 1 << 2)
+    /// this type can be mapped for host access
+    static let hostVisible     = MemoryAttributes(rawValue: 1 << 3)
+    /// this type specifies that the host and device share unified memory
+    /// and no host cache management commands are required for transfer
+    static let hostCoherent    = MemoryAttributes(rawValue: 1 << 4)
+    static let hostCached      = MemoryAttributes(rawValue: 1 << 5)
+    static let lazilyAllocated = MemoryAttributes(rawValue: 1 << 6)
+    static let protected       = MemoryAttributes(rawValue: 1 << 7)
     
     public var description: String {
         var string = "["
-        if self.contains(.deviceLocal) { string += ".deviceLocal, " }
-        if self.contains(.hostVisible) { string += ".hostVisible, " }
-        if self.contains(.hostCoherent) { string += ".hostCoherent, " }
-        if self.contains(.hostCached) { string += ".hostCached, " }
+        if self.contains(.deviceLocal)     { string += ".deviceLocal, " }
+        if self.contains(.hostVisible)     { string += ".hostVisible, " }
+        if self.contains(.hostCoherent)    { string += ".hostCoherent, " }
+        if self.contains(.hostCached)      { string += ".hostCached, " }
         if self.contains(.lazilyAllocated) { string += ".lazilyAllocated, " }
-        if self.contains(.protected) { string += ".protected, " }
-        if self.contains(.deviceCoherentAMD) { string += ".deviceCoherentAMD, "}
-        if self.contains(.deviceUncachedAMD) { string += ".deviceUncachedAMD, "}
+        if self.contains(.protected)       { string += ".protected, " }
+        if self.contains(.deviceCoherent)  { string += ".deviceCoherent, "}
+        if self.contains(.deviceUncached)  { string += ".deviceUncached, "}
         string.removeLast(2)
         string += "]"
         return string
@@ -221,18 +230,37 @@ public struct MemoryAttributes: OptionSet, CustomStringConvertible {
 }
 
 //==============================================================================
-/// DeviceHeapProperties
-public struct DeviceHeapProperties {
-    /// heap total memory size in bytes
-    let size: Int
-    /// a set of flags describing the memory attributes
-    let attributes: MemoryAttributes
+/// DeviceMemoryProperties
+public struct MemoryProperties {
+    /// collection of device heaps
+    var heaps: [MemoryHeap]
 }
 
 //==============================================================================
-/// DeviceMemoryBudget
-public struct DeviceMemoryBudget {
+/// MemoryHeap
+public struct MemoryHeap {
+    /// total memory size in bytes
+    let size: Int
+    /// a set of flags describing the heap attributes
+    let attributes: MemoryAttributes
     
+    /// returns a current estimate of memory used and available in this heap
+    func budget() throws -> MemoryBudget {
+        // TODO
+        return MemoryBudget(available: 0, used: 0)
+    }
+}
+
+//==============================================================================
+/// MemoryBudget
+public struct MemoryBudget {
+    /// a rough estimate of how much memory the process can allocate from
+    /// the associated heap before allocations may fail or cause
+    /// performance degradation
+    var available: Int
+    /// an estimate of how much memory the process is currently using
+    /// in the associated heap
+    var used: Int
 }
 
 //==============================================================================
