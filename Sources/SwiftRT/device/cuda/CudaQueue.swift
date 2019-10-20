@@ -244,6 +244,87 @@ public final class CudaQueue: LocalDeviceQueue {
 //            throw DeviceError.queueError(idPath: [], message: "testError")
 //        }
     }
+    
+    //==========================================================================
+    // gemm
+    //    Row major matrix multiply
+    // A(m x k) * B(k x n) -> C(m x n)
+    //
+    // http://www.christophlassner.de/using-blas-from-c-with-row-major-data.html
+    // dgemm("N","N", n, m, k, alpha, B, n, A, k, beta, C, n)
+    public func gemm<T>(
+        alpha: T.Element = 1,
+        transA: TransposeOp, matrixA: T,
+        transB: TransposeOp, matrixB: T,
+        beta: T.Element = 0,
+        matrixC: inout T) throws where
+        T: TensorView, T.Element: AnyFloatingPoint
+    {
+        // make sure the tensors are 2D
+        assert(matrixA.rank == 2 && matrixB.rank == 2 && matrixC.rank == 2)
+    //    try device.select()
+        let m = transA == .noTranspose ? matrixA.extents[0] : matrixA.extents[1]
+        let k = transA == .noTranspose ? matrixA.extents[1] : matrixA.extents[0]
+        let n = transB == .noTranspose ? matrixB.extents[1] : matrixB.extents[0]
+        let rowStrideA = Int32(matrixA.shape.strides[0])
+        let rowStrideB = Int32(matrixB.shape.strides[0])
+        let rowStrideC = Int32(matrixC.shape.strides[0])
+        
+        let cudaScalarType = T.Element.scalarType.cuda
+        var alpha = alpha
+        var beta = beta
+        
+        // TODO: there are no docs for this, read about cublasGemmAlgo_t
+        switch T.Element.scalarType {
+        case .real16F:
+            try cudaCheck(status: cublasGemmEx(
+                cublas.handle,
+                transB.cublas, transA.cublas,
+                Int32(n), Int32(m), Int32(k),
+                &alpha,
+                matrixB.readOnly(using: self).baseAddress!, cudaScalarType,
+                rowStrideB,
+                matrixA.readOnly(using: self).baseAddress!, cudaScalarType,
+                rowStrideA,
+                &beta,
+                matrixC.readWrite(using: self).baseAddress!, cudaScalarType,
+                rowStrideC,
+                ScalarType.real32F.cuda, CUBLAS_GEMM_DFALT))
+
+        case .real32F:
+            try cudaCheck(status: cublasGemmEx(
+                cublas.handle,
+                transB.cublas, transA.cublas,
+                Int32(n), Int32(m), Int32(k),
+                &alpha,
+                matrixB.readOnly(using: self).baseAddress!, cudaScalarType,
+                rowStrideB,
+                matrixA.readOnly(using: self).baseAddress!, cudaScalarType,
+                rowStrideA,
+                &beta,
+                matrixC.readWrite(using: self).baseAddress!, cudaScalarType,
+                rowStrideC,
+                T.Element.scalarType.cuda, CUBLAS_GEMM_DFALT))
+
+        case .real64F:
+            try cudaCheck(status: cublasGemmEx(
+                cublas.handle,
+                transB.cublas, transA.cublas,
+                Int32(n), Int32(m), Int32(k),
+                &alpha,
+                matrixB.readOnly(using: self).baseAddress!, cudaScalarType,
+                rowStrideB,
+                matrixA.readOnly(using: self).baseAddress!, cudaScalarType,
+                rowStrideA,
+                &beta,
+                matrixC.readWrite(using: self).baseAddress!, cudaScalarType,
+                rowStrideC,
+                T.Element.scalarType.cuda, CUBLAS_GEMM_DFALT))
+
+        default: fatalError("not implemented")
+        }
+    }
+
 } // CudaQueue
 
 ////==============================================================================

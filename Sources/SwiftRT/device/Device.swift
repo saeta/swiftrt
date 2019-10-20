@@ -177,7 +177,13 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
 public enum MemoryAddressing { case unified, discreet }
 
 //==============================================================================
-public enum ExecutionMode { case inference, training }
+public enum EvaluationMode { case inference, training }
+
+public enum PoolingMode {
+    case averageExcludePadding, averageIncludePadding, max
+}
+
+public enum TransposeOp { case transpose, noTranspose, conjugateTranspose }
 
 //==============================================================================
 /// DeviceLimits

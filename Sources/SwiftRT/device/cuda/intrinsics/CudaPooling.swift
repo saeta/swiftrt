@@ -15,7 +15,7 @@
 //
 import CCuda
 
-public final class CudaPoolingFunction<T> where
+public final class CudaPooling<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
@@ -24,8 +24,8 @@ public final class CudaPoolingFunction<T> where
     private let outputTensorDescriptor: TensorDescriptor
     private var output: T
     private var inputGradient: T!
-    private var zero = T.Element(0)
-    private var one = T.Element(1)
+    private var zero: T.Element = 0
+    private var one: T.Element = 1
 
     //--------------------------------------------------------------------------
     // initializer
@@ -33,13 +33,14 @@ public final class CudaPoolingFunction<T> where
                 filterSize: [Int],
                 strides: [Int],
                 padding: [Int],
-                mode: PoolingMode,
+                poolingMode: PoolingMode,
                 nan: NanPropagation,
-                executionMode: ExecutionMode) throws
+                evaluationMode: EvaluationMode) throws
     {
         // create the descriptor
         poolingDescriptor = try PoolingDescriptor(
-            mode: mode, nan: nan,
+            mode: poolingMode,
+            nan: nan,
             filterSize: filterSize,
             padding: padding,
             strides: strides)
@@ -47,8 +48,8 @@ public final class CudaPoolingFunction<T> where
         // create input tensor descriptor
         inputTensorDescriptor = try input.createTensorDescriptor()
         
-        // allocate inputGradientTensor if training will be done
-        if executionMode == .training {
+        // create inputGradientTensor if training will be done
+        if evaluationMode == .training {
             inputGradient = input.createDense()
         }
         
@@ -103,5 +104,24 @@ public final class CudaPoolingFunction<T> where
             inputGradient.deviceReadWrite(using: deviceQueue)))
         
         return inputGradient
+    }
+}
+
+//==============================================================================
+// PoolingMode
+extension cudnnPoolingMode_t : Hashable {}
+
+extension PoolingMode {
+    public var cudnn: cudnnPoolingMode_t {
+        get {
+            let modes = [
+                .averageExcludePadding:
+                CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING,
+                PoolingMode.averageIncludePadding:
+                CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING,
+                PoolingMode.max: CUDNN_POOLING_MAX,
+            ]
+            return modes[self]!
+        }
     }
 }

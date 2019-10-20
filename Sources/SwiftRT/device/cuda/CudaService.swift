@@ -238,7 +238,7 @@ extension TensorFormat {
 }
 
 //------------------------------------------------------------------------------
-// DataType extension
+// ScalarType extension
 extension cudnnDataType_t : Hashable {}
 
 extension ScalarType {
@@ -291,6 +291,18 @@ extension NanPropagation {
             case .noPropagate: return CUDNN_NOT_PROPAGATE_NAN
             case .propagate: return CUDNN_PROPAGATE_NAN
             }
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+// TransposeOp
+extension TransposeOp {
+    public var cublas: cublasOperation_t {
+        switch self {
+        case .noTranspose: return CUBLAS_OP_N
+        case .transpose: return CUBLAS_OP_T
+        case .conjugateTranspose: return CUBLAS_OP_C
         }
     }
 }
@@ -726,30 +738,6 @@ public final class PoolingDescriptor : ObjectTracking {
 		try! cudaCheck(status: cudnnDestroyLRNDescriptor(desc))
 		ObjectTracker.global.remove(trackingId: trackingId)
 	}
-}
-
-//==============================================================================
-// PoolingMode
-// TODO: move this probably into a separate CudaPoolingFunction file
-public enum PoolingMode {
-    case averageExcludePadding, averageIncludePadding, max
-}
-
-extension cudnnPoolingMode_t : Hashable {}
-
-extension PoolingMode {
-    public var cudnn: cudnnPoolingMode_t {
-        get {
-            let modes = [
-                .averageExcludePadding:
-                CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING,
-                PoolingMode.averageIncludePadding:
-                CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING,
-                PoolingMode.max: CUDNN_POOLING_MAX,
-            ]
-            return modes[self]!
-        }
-    }
 }
 
 //==============================================================================
