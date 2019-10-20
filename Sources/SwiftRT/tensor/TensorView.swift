@@ -434,6 +434,16 @@ public extension TensorView {
     }
     
     //--------------------------------------------------------------------------
+    /// deviceReadOnly(using queue:
+    /// Returns a read only device raw memory pointer synced with the specified
+    /// queue.
+    func deviceReadOnly(using queue: DeviceQueue? = nil) throws
+        -> UnsafeRawPointer
+    {
+        return try UnsafeRawPointer(readOnly(using: queue).baseAddress!)
+    }
+    
+    //--------------------------------------------------------------------------
     /// readWrite(using queue:
     /// Returns a read write device memory buffer synced with the specified
     /// queue.
@@ -469,6 +479,16 @@ public extension TensorView {
                 start: buffer.baseAddress!.advanced(by: viewOffset),
                 count: shape.elementSpanCount)
         }
+    }
+    
+    //--------------------------------------------------------------------------
+    /// deviceReadWrite(using queue:
+    /// Returns a read write device raw memory pointer synced with the specified
+    /// queue.
+    mutating func deviceReadWrite(using queue: DeviceQueue? = nil) throws
+        -> UnsafeMutableRawPointer
+    {
+        return try UnsafeMutableRawPointer(readWrite(using: queue).baseAddress!)
     }
     
     //--------------------------------------------------------------------------

@@ -46,7 +46,7 @@ public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     var id: Int { get set }
     /// the root log
     var log: Log { get set }
-    /// dictionary of configuration property sets
+    /// dictionary of service configuration property default overrides
     /// [service name : [property name : property type specific value]]
     var properties: [String : [String : Any]] { get set }
     /// location of dynamically loaded service modules
@@ -175,6 +175,9 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
 }
 
 public enum MemoryAddressing { case unified, discreet }
+
+//==============================================================================
+public enum ExecutionMode { case inference, training }
 
 //==============================================================================
 /// DeviceLimits

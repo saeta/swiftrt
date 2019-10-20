@@ -692,9 +692,19 @@ public final class PoolingDescriptor : ObjectTracking {
 
     //--------------------------------------------------------------------------
     // initializers
-	public init(mode: PoolingMode, nan: NanPropagation, rank: Int, window: [Int],
-	            padding: [Int], stride: [Int]) throws {
-		// create the descriptor
+	public init(mode: PoolingMode,
+                nan: NanPropagation,
+                filterSize: [Int],
+	            padding: [Int],
+                strides: [Int]) throws
+    {
+        // validate
+        assert(
+            filterSize.count == padding.count &&
+            filterSize.count == strides.count,
+            "filterSize, padding, and strides must have equal counts")
+
+        // create the descriptor
 		var temp: cudnnPoolingDescriptor_t?
 		try cudaCheck(status: cudnnCreatePoolingDescriptor(&temp))
 		desc = temp!
@@ -702,10 +712,10 @@ public final class PoolingDescriptor : ObjectTracking {
 		// initialize
 		try cudaCheck(status: cudnnSetPoolingNdDescriptor(
 			desc, mode.cudnn, nan.cudnn,
-			CInt(rank),
-			window.map { CInt($0) },
-			padding.map { CInt($0) },
-			stride.map { CInt($0) }))
+            Int32(filterSize.count),
+			filterSize.map { Int32($0) },
+			padding.map { Int32($0) },
+			strides.map { Int32($0) }))
 
 		trackingId = ObjectTracker.global.register(self)
 	}

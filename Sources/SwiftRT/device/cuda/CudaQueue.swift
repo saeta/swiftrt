@@ -213,7 +213,7 @@ public final class CudaQueue: LocalDeviceQueue {
                 array.buffer.count,
                 cudaMemcpyDeviceToHost, handle))
     }
-
+    
     //--------------------------------------------------------------------------
     /// simulateWork(x:timePerElement:result:
     /// introduces a delay in the queue by sleeping a duration of

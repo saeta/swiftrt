@@ -108,7 +108,7 @@ public extension LocalDeviceQueue {
 //==============================================================================
 // QueueIntrinsicsProtocol
 /// The required set of base level intrinsic functions for a `DeviceQueue`
-///
+/// TODO: probably remove all this for now!
 public protocol QueueIntrinsicsProtocol {
     /// Computes the absolute value of the specified TensorView element-wise.
     func abs<T>(x: T, result: inout T) where

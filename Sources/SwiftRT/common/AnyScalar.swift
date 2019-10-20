@@ -70,7 +70,6 @@ public protocol AnyConvertable: AnyFixedSizeScalar, CVarArg {
 }
 
 public protocol AnyNumeric: AnyConvertable, Numeric {}
-
 public protocol AnyInteger: BinaryInteger, AnyNumeric {}
 public protocol AnyFloatingPoint: FloatingPoint, AnyNumeric {}
 
