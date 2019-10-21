@@ -216,6 +216,16 @@ public struct DeviceLimits {
 }
 
 //==============================================================================
+public enum SoftmaxAlgorithm {
+    case accurate, fast, log
+}
+
+//==============================================================================
+public enum SoftmaxMode {
+    case channel, instance
+}
+
+//==============================================================================
 /// MemoryAttributes
 // TODO: get and reword descriptions so that they make sense in our context.
 // Some of these types maybe be eliminated if they are doing managed memory
