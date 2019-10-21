@@ -20,26 +20,100 @@ import CCuda
 // 2) should the input be retained to guarentee that init
 //    matches the same shape as inferring? Or just assert in inferring?
 
-public final class CudaConvolution<T> where
+public struct CudaConvolution<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
-    // properties
-    private var zero: T.Element = 0
-    private var one: T.Element = 1
-    private let poolingDescriptor: PoolingDescriptor
+    // descriptors
+    private var activationDescriptor: ActivationDescriptor
     private let xTensorDescriptor: TensorDescriptor
     private let yTensorDescriptor: TensorDescriptor
-    private var xDiff: T!
-    private var y: T
+    private var biasTensorDescriptor: TensorDescriptor
+    private var filterDescriptor: FilterDescriptor
+    private var convolutionDescriptor: ConvolutionDescriptor
 
+    // forward
+    private var fwdAlgo: cudnnConvolutionFwdAlgo_t!
+    private var fwdWorkspaceSize = 0
+    private var fwdWorkspace: DeviceArray?
+
+    // backward data
+    private var bwdDataAlgo: cudnnConvolutionBwdDataAlgo_t!
+    private var bwdDataWorkspaceSize = 0
+    private var bwdDataWorkspace: DeviceArray?
+
+    // backward filter
+    private var bwdFilterAlgo: cudnnConvolutionBwdFilterAlgo_t!
+    private var bwdFilterWorkspaceSize = 0
+    private var bwdFilterWorkspace: DeviceArray?
+
+    //--------------------------------------------------------------------------
+    // initializer
     public init(x: T,
+                yShape: inout DataShape,
                 filter: T,
+                weight: T,
+                bias: T,
                 strides: [Int],
                 padding: [Int],
                 dilations: [Int],
                 properties: ConvolutionProperties)
     {
         fatalError()
+    }
+    
+    //--------------------------------------------------------------------------
+    // inferring
+    // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnConvolutionBiasActivationForward
+    public func inferring(y: inout T,
+                          from x: T,
+                          weight: T,
+                          bias: T) throws
+    {
+        let deviceQueue = _Queues.current as! CudaQueue
+        
+        try cudaCheck(status: cudnnConvolutionBiasActivationForward(
+            deviceQueue.cudnn.handle,
+            T.Element.onePointer,
+            xTensorDescriptor.desc,
+            x.deviceReadOnly(using: deviceQueue),
+            filterDescriptor.desc,
+            weight.deviceReadOnly(using: deviceQueue),
+            convolutionDescriptor.desc,
+            fwdAlgo,
+            fwdWorkspace?.buffer.baseAddress!,
+            fwdWorkspaceSize,
+            T.Element.zeroPointer,
+            yTensorDescriptor.desc,
+            y.deviceReadOnly(using: deviceQueue),
+            biasTensorDescriptor.desc,
+            bias.deviceReadOnly(using: deviceQueue),
+            activationDescriptor.desc,
+            yTensorDescriptor.desc,
+            y.deviceReadWrite(using: deviceQueue)))
+    }
+
+    //--------------------------------------------------------------------------
+    // gradient
+    // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnConvolutionBackwardData
+    public func gradient(y: T, yDiff: T,
+                         x: T, xDiff: inout T, weight: T) throws
+    {
+        let deviceQueue = _Queues.current as! CudaQueue
+        
+        try cudaCheck(status: cudnnConvolutionBackwardData(
+            deviceQueue.cudnn.handle,
+            T.Element.onePointer,
+            filterDescriptor.desc,
+            weight.deviceReadOnly(using: deviceQueue),
+            yTensorDescriptor.desc,
+            yDiff.deviceReadOnly(using: deviceQueue),
+            convolutionDescriptor.desc,
+            bwdDataAlgo,
+            bwdDataWorkspace?.buffer.baseAddress!,
+            bwdDataWorkspaceSize,
+            T.Element.zeroPointer,
+            xTensorDescriptor.desc,
+            xDiff.deviceReadWrite(using: deviceQueue)))
     }
 }
 

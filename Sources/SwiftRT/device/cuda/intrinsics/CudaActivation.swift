@@ -20,21 +20,17 @@ import CCuda
 // 2) should the input be retained to guarentee that init
 //    matches the same shape as inferring? Or just assert in inferring?
 
-public final class CudaActivation<T> where
+public struct CudaActivation<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
-    private var zero: T.Element = 0
-    private var one: T.Element = 1
     private let activationDescriptor: ActivationDescriptor
-    private let xTensorDescriptor: TensorDescriptor
-    private let yTensorDescriptor: TensorDescriptor
-    private var xDiff: T!
-    private var y: T
+    private let tensorDescriptor: TensorDescriptor
 
     //--------------------------------------------------------------------------
     // initializer
     public init(x: T,
+                yShape: inout DataShape,
                 mode: ActivationMode,
                 nan: NanPropagation,
                 reluCeiling: Double = 0) throws
@@ -49,65 +45,59 @@ public final class CudaActivation<T> where
 //        let tensorShape = inData.layout != .matrix ? inData.shape :
 //            Shape(extent: [inData.rows, inData.cols, 1, 1], layout: .nchw)
 
-        xTensorDescriptor = try x.createTensorDescriptor()
-
-        // create retained y tensor the same size as x
-        y = x.createDense()
-        yTensorDescriptor = try x.createTensorDescriptor()
+        tensorDescriptor = try x.createTensorDescriptor()
+        
+        // return the shape of the output y and create a tensorDescriptor
+        // with the same scalarType for y
+        yShape = x.shape
     }
     
     //--------------------------------------------------------------------------
     // inferring
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationForward
-    public func inferring(from x: T) throws -> T {
+    public func inferring(y: inout T, from x: T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
         
         try cudaCheck(status: cudnnActivationForward(
-        deviceQueue.cudnn.handle,
-        activationDescriptor.desc,
-        // alpha
-        &one,
-        // x
-        xTensorDescriptor.desc,
-        x.deviceReadOnly(using: deviceQueue),
-        // beta
-        &zero,
-        // y
-        yTensorDescriptor.desc,
-        y.deviceReadWrite(using: deviceQueue)))
-        
-        return y
+            deviceQueue.cudnn.handle,
+            activationDescriptor.desc,
+            // alpha
+            T.Element.onePointer,
+            // x
+            tensorDescriptor.desc,
+            x.deviceReadOnly(using: deviceQueue),
+            // beta
+            T.Element.zeroPointer,
+            // y
+            tensorDescriptor.desc,
+            y.deviceReadWrite(using: deviceQueue)))
     }
     
     //--------------------------------------------------------------------------
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationBackward
-    public func gradient(yDiff: T, x: T) throws -> T {
-        // lazy create and retain
-        if xDiff == nil { xDiff = x.createDense() }
+    public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
 
         try cudaCheck(status: cudnnActivationBackward(
             deviceQueue.cudnn.handle,
             activationDescriptor.desc,
             // alpha
-            &one,
+            T.Element.onePointer,
             // y
-            yTensorDescriptor.desc,
+            tensorDescriptor.desc,
             y.deviceReadOnly(using: deviceQueue),
             // dy
-            yTensorDescriptor.desc,
+            tensorDescriptor.desc,
             yDiff.deviceReadOnly(using: deviceQueue),
             // x
-            xTensorDescriptor.desc,
+            tensorDescriptor.desc,
             x.deviceReadOnly(using: deviceQueue),
             // beta
-            &zero,
+            T.Element.zeroPointer,
             // dx
-            xTensorDescriptor.desc,
+            tensorDescriptor.desc,
             xDiff.deviceReadWrite(using: deviceQueue)))
-
-        return xDiff
     }
 }
 

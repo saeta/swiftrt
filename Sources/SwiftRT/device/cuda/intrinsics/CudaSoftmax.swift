@@ -20,38 +20,36 @@ import CCuda
 // 2) should the input be retained to guarentee that init
 //    matches the same shape as inferring? Or just assert in inferring?
 
-public final class CudaSoftmax<T> where
+public struct CudaSoftmax<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
-    private var zero: T.Element = 0
-    private var one: T.Element = 1
     private var cudnnAlgorithm: cudnnSoftmaxAlgorithm_t
     private var cudnnMode: cudnnSoftmaxMode_t
-    private let xTensorDescriptor: TensorDescriptor
-    private let yTensorDescriptor: TensorDescriptor
-    private var xDiff: T!
-    private var y: T
+    private let tensorDescriptor: TensorDescriptor
 
     //--------------------------------------------------------------------------
     // initializer
-    public init(x: T, algorithm: SoftmaxAlgorithm, mode: SoftmaxMode) throws {
+    public init(x: T,
+                yShape: inout DataShape,
+                algorithm: SoftmaxAlgorithm,
+                mode: SoftmaxMode) throws
+    {
         cudnnAlgorithm = algorithm.cudnn
         cudnnMode = mode.cudnn
         
-        // create input tensor descriptor
-        xTensorDescriptor = try x.createTensorDescriptor()
+        // create x and y tensor descriptor
+        tensorDescriptor = try x.createTensorDescriptor()
 
-        // create retained y tensor the queried output size
-        // based on configuration
-        y = x.createDense()
-        yTensorDescriptor = try y.createTensorDescriptor()
+        // return the shape of the output y and create a tensorDescriptor
+        // with the same scalarType for y
+        yShape = x.shape
     }
     
     //--------------------------------------------------------------------------
     // inferring
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnSoftmaxForward
-    public func inferring(from x: T) throws -> T {
+    public func inferring(y: inout T, from x: T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
         
         try cudaCheck(status: cudnnSoftmaxForward(
@@ -59,25 +57,21 @@ public final class CudaSoftmax<T> where
             cudnnAlgorithm,
             cudnnMode,
             // alpha
-            &one,
+            T.Element.onePointer,
             // x
-            xTensorDescriptor.desc,
+            tensorDescriptor.desc,
             x.deviceReadOnly(using: deviceQueue),
             // beta
-            &zero,
+            T.Element.zeroPointer,
             // y
-            yTensorDescriptor.desc,
+            tensorDescriptor.desc,
             y.deviceReadWrite(using: deviceQueue)))
-
-        return y
     }
     
     //--------------------------------------------------------------------------
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnSoftmaxBackward
-    public func gradient(yDiff: T, x: T) throws -> T {
-        // lazy create and retain
-        if xDiff == nil { xDiff = x.createDense() }
+    public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
         
         // if there aren't any labels then do a normal backward
@@ -86,20 +80,18 @@ public final class CudaSoftmax<T> where
             cudnnAlgorithm,
             cudnnMode,
             // alpha
-            &one,
+            T.Element.onePointer,
             // y
-            yTensorDescriptor.desc,
+            tensorDescriptor.desc,
             y.deviceReadOnly(using: deviceQueue),
             // dy
-            yTensorDescriptor.desc,
+            tensorDescriptor.desc,
             yDiff.deviceReadOnly(using: deviceQueue),
             // beta
-            &zero,
+            T.Element.zeroPointer,
             // dx
-            xTensorDescriptor.desc,
+            tensorDescriptor.desc,
             xDiff.deviceReadWrite(using: deviceQueue)))
-
-        return xDiff
     }
 }
 

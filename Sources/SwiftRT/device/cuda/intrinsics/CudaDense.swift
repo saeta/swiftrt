@@ -15,23 +15,24 @@
 //
 import CCuda
 
-public final class CudaDense<T> where
+public struct CudaDense<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
-    private var zero: T.Element = 0
-    private var one: T.Element = 1
     private let activation: ActivationMode
     private let biasTensorDescriptor: TensorDescriptor
     private let yTensorDescriptor: TensorDescriptor
     private let weight: T
     private let bias: T
-    private var xDiff: T!
-    private var y: T
 
     //--------------------------------------------------------------------------
     // initializer
-    public init(x: T, weight: T, bias: T, activation: ActivationMode) throws {
+    public init(x: T,
+                yShape: inout DataShape,
+                weight: T,
+                bias: T,
+                activation: ActivationMode) throws
+    {
         assert(x.rank == 2 && weight.rank == 2 && bias.rank == 1)
         self.weight = weight
         self.bias = bias
@@ -40,14 +41,15 @@ public final class CudaDense<T> where
         // setup bias
         biasTensorDescriptor = try bias.createTensorDescriptor()
         
-        // create output
-        y = x.createDense(with: [x.extents[0], weight.extents[1]])
-        yTensorDescriptor = try y.createTensorDescriptor()
+        // return the shape of the output y and create a tensorDescriptor
+        // with the same scalarType for y
+        yShape = DataShape(extents: [x.extents[0], weight.extents[1]])
+        yTensorDescriptor = try x.createTensorDescriptor(asShape: yShape)
     }
 
     //--------------------------------------------------------------------------
     // inferring
-    public func inferring(from x: T) throws -> T {
+    public func inferring(y: inout T, from x: T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
         
         // TODO: is there a better fused kernel for y = wx + b??
@@ -59,30 +61,24 @@ public final class CudaDense<T> where
         try cudaCheck(status: cudnnAddTensor(
             deviceQueue.cudnn.handle,
             // alpha
-            &one,
+            T.Element.onePointer,
             // bias
             biasTensorDescriptor.desc,
             bias.deviceReadOnly(using: deviceQueue),
             // beta
-            &one,
+            T.Element.zeroPointer,
             // y
             yTensorDescriptor.desc,
             y.deviceReadWrite(using: deviceQueue)))
-
-        return y
     }
 
     //--------------------------------------------------------------------------
     // gradient
-    public func gradient(yDiff: T, x: T) throws -> T {
-        // lazy create and retain
-        if xDiff == nil { xDiff = x.createDense() }
+    public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
 
-        // TODO: hmm... should bias be part of the calculation??
         try deviceQueue.gemm(transA: .noTranspose, matrixA: yDiff,
                              transB: .transpose, matrixB: weight,
                              matrixC: &xDiff)
-        return xDiff
     }
 }
