@@ -24,13 +24,13 @@ public final class CudaPooling<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
+    private var zero: T.Element = 0
+    private var one: T.Element = 1
     private let poolingDescriptor: PoolingDescriptor
     private let xTensorDescriptor: TensorDescriptor
     private let yTensorDescriptor: TensorDescriptor
-    private var y: T
     private var xDiff: T!
-    private var zero: T.Element = 0
-    private var one: T.Element = 1
+    private var y: T
 
     //--------------------------------------------------------------------------
     // initializer
