@@ -15,6 +15,11 @@
 //
 import CCuda
 
+// *** TODO design questions!
+// 1) class or struct, how are things retained, reused, etc?
+// 2) should the input be retained to guarentee that init
+//    matches the same shape as inferring? Or just assert in inferring?
+
 public final class CudaPooling<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
@@ -34,8 +39,7 @@ public final class CudaPooling<T> where
                 strides: [Int],
                 padding: [Int],
                 poolingMode: PoolingMode,
-                nan: NanPropagation,
-                willTrain: Bool) throws
+                nan: NanPropagation) throws
     {
         // create the descriptor
         poolingDescriptor = try PoolingDescriptor(
@@ -47,7 +51,6 @@ public final class CudaPooling<T> where
 
         // create input tensor descriptor
         xTensorDescriptor = try x.createTensorDescriptor()
-        if willTrain { xDiff = x.createDense() }
 
         // get output tensor size
         var extents = [Int32](repeating: 0, count: x.rank)
@@ -91,6 +94,9 @@ public final class CudaPooling<T> where
     public func gradient(yDiff: T, x: T) throws -> T {
         assert(xDiff != nil, "must init with willTrain == true")
         let deviceQueue = _Queues.current as! CudaQueue
+        
+        // lazy create and retain
+        if xDiff == nil { xDiff = x.createDense() }
         
         try cudaCheck(status: cudnnPoolingBackward(
             deviceQueue.cudnn.handle,
