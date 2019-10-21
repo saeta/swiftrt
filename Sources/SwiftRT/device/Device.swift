@@ -174,56 +174,6 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     func createQueue(name: String, isStatic: Bool) throws -> DeviceQueue
 }
 
-public enum MemoryAddressing { case unified, discreet }
-
-//==============================================================================
-public enum EvaluationMode { case inference, training }
-
-//==============================================================================
-public enum PoolingMode {
-    case averageExcludePadding
-    case averageIncludePadding
-    case max
-    case maxDeterministic
-}
-
-//==============================================================================
-public enum ActivationMode {
-    case sigmoid
-    case relu
-    case tanh
-    case clippedRelu
-    case elu
-    case identity
-}
-
-//==============================================================================
-public enum TransposeOp {
-    case transpose
-    case noTranspose
-    case conjugateTranspose
-}
-
-//==============================================================================
-/// DeviceLimits
-/// parameters defining maximum device capabilties
-public struct DeviceLimits {
-    let maxComputeSharedMemorySize: Int
-    let maxComputeWorkGroupCount: (Int, Int, Int)
-    let maxComputeWorkGroupInvocations: Int
-    let maxComputeWorkGroupSize: (Int, Int, Int)
-    let maxMemoryAllocationCount: Int
-}
-
-//==============================================================================
-public enum SoftmaxAlgorithm {
-    case accurate, fast, log
-}
-
-//==============================================================================
-public enum SoftmaxMode {
-    case channel, instance
-}
 
 //==============================================================================
 /// MemoryAttributes

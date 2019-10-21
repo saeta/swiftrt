@@ -38,3 +38,124 @@ public let vulkanEngineName = "engineName"
 public let vulkanEngineVersion = "engineVersion"
 public let vulkanApiVersion = "apiVersion"
 
+//==============================================================================
+public enum MemoryAddressing { case unified, discreet }
+
+//==============================================================================
+public enum EvaluationMode { case inference, training }
+
+//==============================================================================
+public enum PoolingMode {
+    case averageExcludePadding
+    case averageIncludePadding
+    case max
+    case maxDeterministic
+}
+
+//==============================================================================
+public enum ActivationMode {
+    case sigmoid
+    case relu
+    case tanh
+    case clippedRelu
+    case elu
+    case identity
+}
+
+//==============================================================================
+public enum TransposeOp {
+    case transpose
+    case noTranspose
+    case conjugateTranspose
+}
+
+//==============================================================================
+/// DeviceLimits
+/// parameters defining maximum device capabilties
+public struct DeviceLimits {
+    let maxComputeSharedMemorySize: Int
+    let maxComputeWorkGroupCount: (Int, Int, Int)
+    let maxComputeWorkGroupInvocations: Int
+    let maxComputeWorkGroupSize: (Int, Int, Int)
+    let maxMemoryAllocationCount: Int
+}
+
+//==============================================================================
+public enum SoftmaxAlgorithm {
+    case accurate, fast, log
+}
+
+//==============================================================================
+public enum SoftmaxMode {
+    case channel, instance
+}
+
+//==============================================================================
+// ConvolutionProperties
+public struct ConvolutionProperties {
+    var activationMode: ActivationMode = .identity
+    var activationNan: NanPropagation = .noPropagate
+    var activationReluCeiling: Double = 0
+    var backwardDataAlgorithm: ConvolutionBwdDataAlgorithm = .fastest
+    var backwardDataWorkspaceLimit: Int = 10.MB
+    var backwardFilterAlgorithm: ConvolutionBwdFilterAlgorithm = .fastest
+    var backwardFilterWorkspaceLimit: Int = 10.MB
+    var forwardAlgorithm: ConvolutionFwdAlgorithm = .fastest
+    var forwardWorkspaceLimit: Int = 10.MB
+    var mode: ConvolutionMode = .crossCorrelation
+}
+
+//==============================================================================
+// ConvolutionFwdAlgorithm
+public enum ConvolutionFwdAlgorithm: CaseIterable {
+    case implicitGEMM
+    case implicitPrecompGEMM
+    case gemm
+    case direct
+    case fft
+    case fftTiling
+    case winograd
+    case winogradNonFused
+    case deterministic
+    case fastest
+    case noWorkspace
+    case workspaceLimit
+}
+
+//==============================================================================
+// ConvolutionBwdDataAlgorithm
+public enum ConvolutionBwdDataAlgorithm: CaseIterable {
+    case algo0
+    case algo1
+    case fft
+    case fftTiling
+    case winograd
+    case winogradNonFused
+    case deterministic
+    case fastest
+    case noWorkspace
+    case workspaceLimit
+}
+
+//==============================================================================
+// ConvolutionBwdFilterAlgorithm
+public enum ConvolutionBwdFilterAlgorithm: CaseIterable {
+    case algo0
+    case algo1
+    case algo3
+    case fft
+    case winograd
+    case winogradNonFused
+    case numAlgorithms
+    case deterministic
+    case fastest
+    case noWorkspace
+    case workspaceLimit
+}
+
+//==============================================================================
+// ConvolutionMode
+public enum ConvolutionMode: CaseIterable {
+    case convolution
+    case crossCorrelation
+}

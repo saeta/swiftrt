@@ -458,23 +458,6 @@ public final class ConvolutionDescriptor : ObjectTracking {
 	}
 }
 
-// ConvolutionMode
-public enum ConvolutionMode {
-    case convolution
-    case crossCorrelation
-}
-
-extension ConvolutionMode {
-    public var cudnn: cudnnConvolutionMode_t {
-        get {
-            switch self {
-            case .convolution: return CUDNN_CONVOLUTION
-            case .crossCorrelation: return CUDNN_CROSS_CORRELATION
-            }
-        }
-    }
-}
-
 //==============================================================================
 // DropoutDescriptor
 public final class DropoutDescriptor: ObjectTracking {

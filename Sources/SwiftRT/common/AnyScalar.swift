@@ -69,9 +69,12 @@ public protocol AnyConvertable: AnyFixedSizeScalar, CVarArg {
     static func formatString(_ format: (width: Int, precision: Int)?) -> String
 }
 
-public protocol AnyNumeric: AnyConvertable, Numeric {}
+public protocol AnyNumeric: AnyConvertable, Numeric { }
 public protocol AnyInteger: BinaryInteger, AnyNumeric {}
-public protocol AnyFloatingPoint: FloatingPoint, AnyNumeric {}
+public protocol AnyFloatingPoint: FloatingPoint, AnyNumeric {
+    static var zeroPointer: UnsafeRawPointer { get }
+    static var onePointer: UnsafeRawPointer { get }
+}
 
 //------------------------------------------------------------------------------
 extension Int8: AnyInteger {
@@ -536,6 +539,17 @@ extension Float : AnyFloatingPoint {
         guard let value = Float(string) else { return nil }
 		self = value
 	}
+    
+    // zero and one (to support Cuda)
+    public static var zero: Self = 0
+    public static var zeroPointer: UnsafeRawPointer {
+        return UnsafeRawPointer(&zero)
+    }
+
+    public static var one: Self = 1
+    public static var onePointer: UnsafeRawPointer {
+        return UnsafeRawPointer(&one)
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -581,6 +595,17 @@ extension Double : AnyFloatingPoint {
         guard let value = Double(string) else { return nil }
 		self = value
 	}
+    
+    // zero and one (to support Cuda)
+    public static var zero: Self = 0
+    public static var zeroPointer: UnsafeRawPointer {
+        return UnsafeRawPointer(&zero)
+    }
+    
+    public static var one: Self = 1
+    public static var onePointer: UnsafeRawPointer {
+        return UnsafeRawPointer(&one)
+    }
 }
 
 

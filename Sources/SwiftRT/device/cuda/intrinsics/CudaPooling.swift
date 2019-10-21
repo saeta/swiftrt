@@ -20,21 +20,18 @@ import CCuda
 // 2) should the input be retained to guarentee that init
 //    matches the same shape as inferring? Or just assert in inferring?
 
-public final class CudaPooling<T> where
+public struct CudaPooling<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
-    private var zero: T.Element = 0
-    private var one: T.Element = 1
     private let poolingDescriptor: PoolingDescriptor
     private let xTensorDescriptor: TensorDescriptor
     private let yTensorDescriptor: TensorDescriptor
-    private var xDiff: T!
-    private var y: T
 
     //--------------------------------------------------------------------------
     // initializer
     public init(x: T,
+                yShape: inout DataShape,
                 filterSize: [Int],
                 strides: [Int],
                 padding: [Int],
@@ -52,7 +49,7 @@ public final class CudaPooling<T> where
         // create input tensor descriptor
         xTensorDescriptor = try x.createTensorDescriptor()
 
-        // get output tensor size
+        // get output extents based on settings
         var extents = [Int32](repeating: 0, count: x.rank)
         try cudaCheck(status: cudnnGetPoolingNdForwardOutputDim(
             poolingDescriptor.desc,
@@ -60,48 +57,44 @@ public final class CudaPooling<T> where
             Int32(x.rank),
             &extents))
 
-        // create retained y tensor the queried output size
-        // based on configuration
-        y = x.createDense(with: extents.map { Int($0) })
-        yTensorDescriptor = try y.createTensorDescriptor()
+        // return the shape of the output y and create a tensorDescriptor
+        // with the same scalarType for y
+        yShape = DataShape(extents: extents.map { Int($0) })
+        yTensorDescriptor = try x.createTensorDescriptor(asShape: yShape)
     }
     
     //--------------------------------------------------------------------------
     // inferring
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingForward
-    public func inferring(from x: T) throws -> T {
+    public func inferring(y: inout T, from x: T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
         
         try cudaCheck(status: cudnnPoolingForward(
             deviceQueue.cudnn.handle,
             poolingDescriptor.desc,
             // alpha
-            &one,
+            T.Element.onePointer,
             // x
             xTensorDescriptor.desc,
             x.deviceReadOnly(using: deviceQueue),
             // beta
-            &zero,
+            T.Element.zeroPointer,
             // y
             yTensorDescriptor.desc,
             y.deviceReadWrite(using: deviceQueue)))
-
-        return y
     }
     
     //--------------------------------------------------------------------------
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingBackward
-    public func gradient(yDiff: T, x: T) throws -> T {
-        // lazy create and retain
-        if xDiff == nil { xDiff = x.createDense() }
+    public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
         
         try cudaCheck(status: cudnnPoolingBackward(
             deviceQueue.cudnn.handle,
             poolingDescriptor.desc,
             // alpha
-            &one,
+            T.Element.onePointer,
             // y
             yTensorDescriptor.desc,
             y.deviceReadOnly(using: deviceQueue),
@@ -112,12 +105,10 @@ public final class CudaPooling<T> where
             xTensorDescriptor.desc,
             x.deviceReadOnly(using: deviceQueue),
             // beta
-            &zero,
+            T.Element.zeroPointer,
             // dx
             xTensorDescriptor.desc,
             xDiff.deviceReadWrite(using: deviceQueue)))
-        
-        return xDiff
     }
 }
 
