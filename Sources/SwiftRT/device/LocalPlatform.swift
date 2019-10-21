@@ -74,13 +74,13 @@ public extension LocalPlatform {
 
             //-------------------------------------
             // static inclusions
-//            #if VULKAN
+            #if VULKAN
             let vulkanService =
                 try VulkanService(platform: Platform.local,
-                                         id: loadedServices.count,
-                                         logInfo: logInfo)
+                                  id: loadedServices.count,
+                                  logInfo: logInfo)
             loadedServices[vulkanService.name] = vulkanService
-//            #endif
+            #endif
 
             #if CUDA
             let cudaService = try CudaComputeService(platform: Platform.local,

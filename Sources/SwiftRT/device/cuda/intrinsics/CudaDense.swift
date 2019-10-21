@@ -19,72 +19,70 @@ public final class CudaDense<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
-    private var output: T
-    private let weight: T
-    private let bias: T
-    private let activation: ActivationMode
-    private let biasTensorDescriptor: TensorDescriptor
-    private let outputTensorDescriptor: TensorDescriptor
-//    private var backReductionContext: ReductionContext!
-    private var inputGradient: T!
     private var zero: T.Element = 0
     private var one: T.Element = 1
+    private let activation: ActivationMode
+    private let biasTensorDescriptor: TensorDescriptor
+    private let yTensorDescriptor: TensorDescriptor
+    private let weight: T
+    private let bias: T
+    private var xDiff: T!
+    private var y: T
 
     //--------------------------------------------------------------------------
     // initializer
-    public init(input: T,
-                weight: T,
-                bias: T,
-                activation: ActivationMode,
-                evaluationMode: EvaluationMode) throws
-    {
-        assert(input.rank == 2 && weight.rank == 2 && bias.rank == 1)
+    public init(x: T, weight: T, bias: T, activation: ActivationMode) throws {
+        assert(x.rank == 2 && weight.rank == 2 && bias.rank == 1)
         self.weight = weight
         self.bias = bias
         self.activation = activation
-        
-        // create inputGradientTensor if training will be done
-        if evaluationMode == .training {
-            inputGradient = input.createDense()
-        }
         
         // setup bias
         biasTensorDescriptor = try bias.createTensorDescriptor()
         
         // create output
-        output = input.createDense(with: [input.extents[0], weight.extents[1]])
-        outputTensorDescriptor = try output.createTensorDescriptor()
+        y = x.createDense(with: [x.extents[0], weight.extents[1]])
+        yTensorDescriptor = try y.createTensorDescriptor()
     }
 
     //--------------------------------------------------------------------------
     // inferring
-    public func inferring(from input: T) throws -> T {
+    public func inferring(from x: T) throws -> T {
         let deviceQueue = _Queues.current as! CudaQueue
         
+        // TODO: is there a better fused kernel for y = wx + b??
         try deviceQueue.gemm(
-            transA: .noTranspose, matrixA: input,
+            transA: .noTranspose, matrixA: x,
             transB: .noTranspose, matrixB: weight,
-            matrixC: &output)
+            matrixC: &y)
         
         try cudaCheck(status: cudnnAddTensor(
             deviceQueue.cudnn.handle,
+            // alpha
             &one,
+            // bias
             biasTensorDescriptor.desc,
             bias.deviceReadOnly(using: deviceQueue),
+            // beta
             &one,
-            outputTensorDescriptor.desc,
-            output.deviceReadWrite(using: deviceQueue)))
+            // y
+            yTensorDescriptor.desc,
+            y.deviceReadWrite(using: deviceQueue)))
 
-        return output
+        return y
     }
 
     //--------------------------------------------------------------------------
     // gradient
-    // TODO: gradients need to be sorted out w.r.t. S4TF handling
-    public func gradient(outputGradient: T, input: T) throws -> T {
-//        let deviceQueue = _Queues.current as! CudaQueue
-        
+    public func gradient(yDiff: T, x: T) throws -> T {
+        // lazy create and retain
+        if xDiff == nil { xDiff = x.createDense() }
+        let deviceQueue = _Queues.current as! CudaQueue
 
-        return inputGradient
+        // TODO: hmm... should bias be part of the calculation??
+        try deviceQueue.gemm(transA: .noTranspose, matrixA: yDiff,
+                             transB: .transpose, matrixB: weight,
+                             matrixC: &xDiff)
+        return xDiff
     }
 }

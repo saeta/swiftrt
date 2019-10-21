@@ -92,11 +92,9 @@ public final class CudaPooling<T> where
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingBackward
     public func gradient(yDiff: T, x: T) throws -> T {
-        assert(xDiff != nil, "must init with willTrain == true")
-        let deviceQueue = _Queues.current as! CudaQueue
-        
         // lazy create and retain
         if xDiff == nil { xDiff = x.createDense() }
+        let deviceQueue = _Queues.current as! CudaQueue
         
         try cudaCheck(status: cudnnPoolingBackward(
             deviceQueue.cudnn.handle,
