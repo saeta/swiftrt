@@ -114,12 +114,11 @@ extension cudnnPoolingMode_t : Hashable {}
 extension PoolingMode {
     public var cudnn: cudnnPoolingMode_t {
         get {
-            let modes = [
-                .averageExcludePadding:
-                CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING,
-                PoolingMode.averageIncludePadding:
-                CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING,
-                PoolingMode.max: CUDNN_POOLING_MAX,
+            let modes: [PoolingMode: cudnnPoolingMode_t] = [
+                .max: CUDNN_POOLING_MAX,
+                .maxDeterministic: CUDNN_POOLING_MAX_DETERMINISTIC,
+                .averageExcludePadding: CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING,
+                .averageIncludePadding: CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING,
             ]
             return modes[self]!
         }

@@ -180,7 +180,10 @@ public enum MemoryAddressing { case unified, discreet }
 public enum EvaluationMode { case inference, training }
 
 public enum PoolingMode {
-    case averageExcludePadding, averageIncludePadding, max
+    case averageExcludePadding
+    case averageIncludePadding
+    case max
+    case maxDeterministic
 }
 
 public enum TransposeOp { case transpose, noTranspose, conjugateTranspose }
