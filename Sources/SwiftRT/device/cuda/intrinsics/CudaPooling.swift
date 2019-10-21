@@ -20,22 +20,22 @@ public final class CudaPooling<T> where
 {
     // properties
     private let poolingDescriptor: PoolingDescriptor
-    private let inputTensorDescriptor: TensorDescriptor
-    private let outputTensorDescriptor: TensorDescriptor
-    private var output: T
-    private var inputGradient: T!
+    private let xTensorDescriptor: TensorDescriptor
+    private let yTensorDescriptor: TensorDescriptor
+    private var y: T
+    private var xDiff: T!
     private var zero: T.Element = 0
     private var one: T.Element = 1
 
     //--------------------------------------------------------------------------
     // initializer
-    public init(input: T,
+    public init(x: T,
                 filterSize: [Int],
                 strides: [Int],
                 padding: [Int],
                 poolingMode: PoolingMode,
                 nan: NanPropagation,
-                evaluationMode: EvaluationMode) throws
+                willTrain: Bool) throws
     {
         // create the descriptor
         poolingDescriptor = try PoolingDescriptor(
@@ -46,66 +46,73 @@ public final class CudaPooling<T> where
             strides: strides)
 
         // create input tensor descriptor
-        inputTensorDescriptor = try input.createTensorDescriptor()
-        
-        // create inputGradientTensor if training will be done
-        if evaluationMode == .training {
-            inputGradient = input.createDense()
-        }
-        
+        xTensorDescriptor = try x.createTensorDescriptor()
+        if willTrain { xDiff = x.createDense() }
+
         // get output tensor size
-        var extents = [Int32](repeating: 0, count: input.rank)
+        var extents = [Int32](repeating: 0, count: x.rank)
         try cudaCheck(status: cudnnGetPoolingNdForwardOutputDim(
             poolingDescriptor.desc,
-            inputTensorDescriptor.desc,
-            Int32(input.rank),
+            xTensorDescriptor.desc,
+            Int32(x.rank),
             &extents))
 
-        // create retained output tensor
-        output = input.createDense(with: extents.map { Int($0) })
-        outputTensorDescriptor = try output.createTensorDescriptor()
+        // create retained y tensor the same size as x
+        y = x.createDense(with: extents.map { Int($0) })
+        yTensorDescriptor = try y.createTensorDescriptor()
     }
     
     //--------------------------------------------------------------------------
     // inferring
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingForward
-    public func inferring(from input: T) throws -> T {
+    public func inferring(from x: T) throws -> T {
         let deviceQueue = _Queues.current as! CudaQueue
         
         try cudaCheck(status: cudnnPoolingForward(
             deviceQueue.cudnn.handle,
             poolingDescriptor.desc,
+            // alpha
             &one,
-            inputTensorDescriptor.desc,
-            input.deviceReadOnly(using: deviceQueue),
+            // x
+            xTensorDescriptor.desc,
+            x.deviceReadOnly(using: deviceQueue),
+            // beta
             &zero,
-            outputTensorDescriptor.desc,
-            output.deviceReadWrite(using: deviceQueue)))
+            // y
+            yTensorDescriptor.desc,
+            y.deviceReadWrite(using: deviceQueue)))
 
-        return output
+        return y
     }
     
     //--------------------------------------------------------------------------
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingBackward
-    public func gradient(outputGradient: T, input: T) throws -> T {
+    public func gradient(yDiff: T, x: T) throws -> T {
+        assert(xDiff != nil, "must init with willTrain == true")
         let deviceQueue = _Queues.current as! CudaQueue
         
         try cudaCheck(status: cudnnPoolingBackward(
             deviceQueue.cudnn.handle,
             poolingDescriptor.desc,
+            // alpha
             &one,
-            outputTensorDescriptor.desc,
-            output.deviceReadOnly(using: deviceQueue),
-            outputTensorDescriptor.desc,
-            outputGradient.deviceReadOnly(using: deviceQueue),
-            inputTensorDescriptor.desc,
-            input.deviceReadOnly(using: deviceQueue),
+            // y
+            yTensorDescriptor.desc,
+            y.deviceReadOnly(using: deviceQueue),
+            // dy
+            yTensorDescriptor.desc,
+            yDiff.deviceReadOnly(using: deviceQueue),
+            // x
+            xTensorDescriptor.desc,
+            x.deviceReadOnly(using: deviceQueue),
+            // beta
             &zero,
-            inputTensorDescriptor.desc,
-            inputGradient.deviceReadWrite(using: deviceQueue)))
+            // dx
+            xTensorDescriptor.desc,
+            xDiff.deviceReadWrite(using: deviceQueue)))
         
-        return inputGradient
+        return xDiff
     }
 }
 
