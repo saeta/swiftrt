@@ -68,6 +68,7 @@ public final class CudaPooling<T> where
     
     //--------------------------------------------------------------------------
     // inferring
+    // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingForward
     public func inferring(from input: T) throws -> T {
         let deviceQueue = _Queues.current as! CudaQueue
         
@@ -86,6 +87,7 @@ public final class CudaPooling<T> where
     
     //--------------------------------------------------------------------------
     // gradient
+    // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingBackward
     public func gradient(outputGradient: T, input: T) throws -> T {
         let deviceQueue = _Queues.current as! CudaQueue
         
