@@ -421,26 +421,6 @@ public final class ActivationDescriptor : ObjectTracking {
 	}
 }
 
-//--------------------------------------
-// ActivationMode
-public enum ActivationMode {
-    case sigmoid, relu, tanh, clippedRelu
-}
-
-extension ActivationMode {
-    public var cudnn: cudnnActivationMode_t {
-        get {
-            let modes: [ActivationMode: cudnnActivationMode_t] = [
-                .clippedRelu: CUDNN_ACTIVATION_CLIPPED_RELU,
-                .relu: CUDNN_ACTIVATION_RELU,
-                .sigmoid: CUDNN_ACTIVATION_SIGMOID,
-                .tanh: CUDNN_ACTIVATION_TANH,
-            ]
-            return modes[self]!
-        }
-    }
-}
-
 //==============================================================================
 // ConvolutionDescriptor
 public final class ConvolutionDescriptor : ObjectTracking {

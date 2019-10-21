@@ -179,6 +179,7 @@ public enum MemoryAddressing { case unified, discreet }
 //==============================================================================
 public enum EvaluationMode { case inference, training }
 
+//==============================================================================
 public enum PoolingMode {
     case averageExcludePadding
     case averageIncludePadding
@@ -186,7 +187,22 @@ public enum PoolingMode {
     case maxDeterministic
 }
 
-public enum TransposeOp { case transpose, noTranspose, conjugateTranspose }
+//==============================================================================
+public enum ActivationMode {
+    case sigmoid
+    case relu
+    case tanh
+    case clippedRelu
+    case elu
+    case identity
+}
+
+//==============================================================================
+public enum TransposeOp {
+    case transpose
+    case noTranspose
+    case conjugateTranspose
+}
 
 //==============================================================================
 /// DeviceLimits

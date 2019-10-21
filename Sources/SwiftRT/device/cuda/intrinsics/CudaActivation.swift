@@ -20,13 +20,13 @@ import CCuda
 // 2) should the input be retained to guarentee that init
 //    matches the same shape as inferring? Or just assert in inferring?
 
-public final class CudaPooling<T> where
+public final class CudaActivation<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
     private var zero: T.Element = 0
     private var one: T.Element = 1
-    private let poolingDescriptor: PoolingDescriptor
+    private let activationDescriptor: ActivationDescriptor
     private let xTensorDescriptor: TensorDescriptor
     private let yTensorDescriptor: TensorDescriptor
     private var xDiff: T!
@@ -35,71 +35,61 @@ public final class CudaPooling<T> where
     //--------------------------------------------------------------------------
     // initializer
     public init(x: T,
-                filterSize: [Int],
-                strides: [Int],
-                padding: [Int],
-                poolingMode: PoolingMode,
-                nan: NanPropagation) throws
+                mode: ActivationMode,
+                nan: NanPropagation,
+                reluCeiling: Double = 0) throws
     {
-        // create the descriptor
-        poolingDescriptor = try PoolingDescriptor(
-            mode: poolingMode,
-            nan: nan,
-            filterSize: filterSize,
-            padding: padding,
-            strides: strides)
+        // create descriptor
+        activationDescriptor =
+            try ActivationDescriptor(mode: mode, nan: nan,
+                                     reluCeiling: reluCeiling)
+        
+        // TODO: figure out how S4TF wants to handle layouts
+        // create tensor descriptors
+//        let tensorShape = inData.layout != .matrix ? inData.shape :
+//            Shape(extent: [inData.rows, inData.cols, 1, 1], layout: .nchw)
 
-        // create input tensor descriptor
         xTensorDescriptor = try x.createTensorDescriptor()
 
-        // get output tensor size
-        var extents = [Int32](repeating: 0, count: x.rank)
-        try cudaCheck(status: cudnnGetPoolingNdForwardOutputDim(
-            poolingDescriptor.desc,
-            xTensorDescriptor.desc,
-            Int32(x.rank),
-            &extents))
-
-        // create retained y tensor the queried output size
-        // based on configuration
-        y = x.createDense(with: extents.map { Int($0) })
-        yTensorDescriptor = try y.createTensorDescriptor()
+        // create retained y tensor the same size as x
+        y = x.createDense()
+        yTensorDescriptor = try x.createTensorDescriptor()
     }
     
     //--------------------------------------------------------------------------
     // inferring
-    // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingForward
+    // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationForward
     public func inferring(from x: T) throws -> T {
         let deviceQueue = _Queues.current as! CudaQueue
         
-        try cudaCheck(status: cudnnPoolingForward(
-            deviceQueue.cudnn.handle,
-            poolingDescriptor.desc,
-            // alpha
-            &one,
-            // x
-            xTensorDescriptor.desc,
-            x.deviceReadOnly(using: deviceQueue),
-            // beta
-            &zero,
-            // y
-            yTensorDescriptor.desc,
-            y.deviceReadWrite(using: deviceQueue)))
-
+        try cudaCheck(status: cudnnActivationForward(
+        deviceQueue.cudnn.handle,
+        activationDescriptor.desc,
+        // alpha
+        &one,
+        // x
+        xTensorDescriptor.desc,
+        x.deviceReadOnly(using: deviceQueue),
+        // beta
+        &zero,
+        // y
+        yTensorDescriptor.desc,
+        y.deviceReadWrite(using: deviceQueue)))
+        
         return y
     }
     
     //--------------------------------------------------------------------------
     // gradient
-    // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingBackward
+    // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationBackward
     public func gradient(yDiff: T, x: T) throws -> T {
         // lazy create and retain
         if xDiff == nil { xDiff = x.createDense() }
         let deviceQueue = _Queues.current as! CudaQueue
-        
-        try cudaCheck(status: cudnnPoolingBackward(
+
+        try cudaCheck(status: cudnnActivationBackward(
             deviceQueue.cudnn.handle,
-            poolingDescriptor.desc,
+            activationDescriptor.desc,
             // alpha
             &one,
             // y
@@ -116,25 +106,25 @@ public final class CudaPooling<T> where
             // dx
             xTensorDescriptor.desc,
             xDiff.deviceReadWrite(using: deviceQueue)))
-        
+
         return xDiff
     }
 }
 
 //==============================================================================
-// PoolingMode
-extension cudnnPoolingMode_t : Hashable {}
-
-extension PoolingMode {
-    public var cudnn: cudnnPoolingMode_t {
+extension ActivationMode {
+    public var cudnn: cudnnActivationMode_t {
         get {
-            let modes: [PoolingMode: cudnnPoolingMode_t] = [
-                .max: CUDNN_POOLING_MAX,
-                .maxDeterministic: CUDNN_POOLING_MAX_DETERMINISTIC,
-                .averageExcludePadding: CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING,
-                .averageIncludePadding: CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING,
+            let modes: [ActivationMode: cudnnActivationMode_t] = [
+                .sigmoid: CUDNN_ACTIVATION_SIGMOID,
+                .relu: CUDNN_ACTIVATION_RELU,
+                .tanh: CUDNN_ACTIVATION_TANH,
+                .clippedRelu: CUDNN_ACTIVATION_CLIPPED_RELU,
+                .elu: CUDNN_ACTIVATION_ELU,
+                .identity: CUDNN_ACTIVATION_IDENTITY,
             ]
             return modes[self]!
         }
     }
 }
+
