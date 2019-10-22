@@ -23,13 +23,17 @@ import CCuda
 public struct CudaConvolution<T>: Logging where
     T: TensorView, T.Element: AnyFloatingPoint
 {
+    // queues
+    private let dataQueue: CudaQueue
+    private let filterBiasBackQueue: CudaQueue
+
     // descriptors
+    private let convolutionDescriptor: ConvolutionDescriptor
     private var activationDescriptor: ActivationDescriptor
     private let xTensorDescriptor: TensorDescriptor
     private let yTensorDescriptor: TensorDescriptor
-    private let biasTensorDescriptor: TensorDescriptor
     private let filterDescriptor: FilterDescriptor
-    private let convolutionDescriptor: ConvolutionDescriptor
+    private let biasTensorDescriptor: TensorDescriptor
 
     // forward
     private var fwdAlgo: cudnnConvolutionFwdAlgo_t
@@ -46,8 +50,7 @@ public struct CudaConvolution<T>: Logging where
     private var bwdFilterWorkspaceSize = 0
     private var bwdFilterWorkspace: DeviceArray?
     private let logCategories: LogCategories = [.initialize]
-
-
+    
     //--------------------------------------------------------------------------
     // initializer
     public init(x: T,
@@ -58,16 +61,24 @@ public struct CudaConvolution<T>: Logging where
                 strides: [Int],
                 padding: [Int],
                 dilations: [Int],
-                properties: ConvolutionProperties) throws
+                properties: ConvolutionProperties,
+                dataQueue: CudaQueue? = nil,
+                filterBiasBackQueue: CudaQueue? = nil) throws
     {
+        //----------------------------------
+        // queues
+        // initialization can create workspaces on the devices
+        // associated with the queues, so we hold on to them
+        let defaultQueue = _Queues.current as! CudaQueue
+        self.dataQueue = dataQueue ?? defaultQueue
+        self.filterBiasBackQueue = filterBiasBackQueue ?? defaultQueue
+        
         xTensorDescriptor = try x.createTensorDescriptor()
         filterDescriptor = try FilterDescriptor(filter)
         biasTensorDescriptor = try bias.createTensorDescriptor()
 
         //----------------------------------
-        let deviceQueue = _Queues.current as! CudaQueue
-        
-        // set some initial values so we can use `self`
+        // set some initial values so we can use `self` during init
         fwdAlgo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM
         bwdDataAlgo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_0
         bwdFilterAlgo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0
@@ -108,36 +119,28 @@ public struct CudaConvolution<T>: Logging where
         yShape = DataShape(extents: yExtent.map { Int($0) })
         yTensorDescriptor = try x.createTensorDescriptor(asShape: yShape)
 
-        try selectForwardAlgorithm(x: x, properties: properties, deviceQueue)
+        try selectForwardAlgorithm(x: x, properties: properties)
        
         // TODO: get this from Context
         // if _Context.evaluationMode == .training {
-        try selectBackwardAlgorithm(x: x,
-                                    properties: properties,
-                                    deviceQueue)
+        try selectBackwardAlgorithm(x: x, properties: properties)
         // }
     }
     
     //--------------------------------------------------------------------------
     // inferring
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnConvolutionBiasActivationForward
-    public func inferring(y: inout T,
-                          from x: T,
-                          filter: T,
-                          bias: T) throws
-    {
-        let deviceQueue = _Queues.current as! CudaQueue
-        
+    public func inferring(y: inout T, from x: T, filter: T, bias: T) throws {
         try cudaCheck(status: cudnnConvolutionBiasActivationForward(
-            deviceQueue.cudnn.handle,
+            dataQueue.cudnn.handle,
             // alpha1
             T.Element.onePointer,
             // x
             xTensorDescriptor.desc,
-            x.deviceReadOnly(using: deviceQueue),
+            x.deviceReadOnly(using: dataQueue),
             // filter weights
             filterDescriptor.desc,
-            filter.deviceReadOnly(using: deviceQueue),
+            filter.deviceReadOnly(using: dataQueue),
             // convDesc
             convolutionDescriptor.desc,
             // algo
@@ -148,53 +151,98 @@ public struct CudaConvolution<T>: Logging where
             fwdWorkspaceSize,
             // alpha2
             T.Element.zeroPointer,
-            // z used for activation (TODO: y?? find out what's right)
+            // z used for activation (TODO: inplace on y?? find out what's right)
             yTensorDescriptor.desc,
-            y.deviceReadOnly(using: deviceQueue),
+            y.deviceReadOnly(using: dataQueue),
             // bias
             biasTensorDescriptor.desc,
-            bias.deviceReadOnly(using: deviceQueue),
+            bias.deviceReadOnly(using: dataQueue),
             // activation
             activationDescriptor.desc,
             // y
             yTensorDescriptor.desc,
-            y.deviceReadWrite(using: deviceQueue)))
+            y.deviceReadWrite(using: dataQueue)))
     }
 
     //--------------------------------------------------------------------------
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnConvolutionBackwardData
     public func gradient(y: T, yDiff: T,
-                         x: T, xDiff: inout T, weight: T) throws
+                         filter: T, filterDiff: inout T,
+                         bias: T, biasDiff: inout T,
+                         x: T, xDiff: inout T) throws
     {
-        let deviceQueue = _Queues.current as! CudaQueue
-        
+        // data
         try cudaCheck(status: cudnnConvolutionBackwardData(
-            deviceQueue.cudnn.handle,
+            dataQueue.cudnn.handle,
+            // alpha
             T.Element.onePointer,
+            // filter
             filterDescriptor.desc,
-            weight.deviceReadOnly(using: deviceQueue),
+            filter.deviceReadOnly(using: dataQueue),
+            // yDiff
             yTensorDescriptor.desc,
-            yDiff.deviceReadOnly(using: deviceQueue),
+            yDiff.deviceReadOnly(using: dataQueue),
+            // conv
             convolutionDescriptor.desc,
+            // algo
             bwdDataAlgo,
+            // workspace
             bwdDataWorkspace?.buffer.baseAddress!,
             bwdDataWorkspaceSize,
+            // beta
             T.Element.zeroPointer,
+            // xDiff
             xTensorDescriptor.desc,
-            xDiff.deviceReadWrite(using: deviceQueue)))
+            xDiff.deviceReadWrite(using: dataQueue)))
+        
+        // filter
+        try cudaCheck(status: cudnnConvolutionBackwardFilter(
+            filterBiasBackQueue.cudnn.handle,
+            // alpha
+            T.Element.onePointer,
+            // x
+            xTensorDescriptor.desc,
+            x.deviceReadOnly(using: dataQueue),
+            // yDiff
+            yTensorDescriptor.desc,
+            yDiff.deviceReadOnly(using: dataQueue),
+            // conv
+            convolutionDescriptor.desc,
+            // algo
+            bwdFilterAlgo,
+            // workspace
+            bwdFilterWorkspace?.buffer.baseAddress!,
+            bwdFilterWorkspaceSize,
+            // beta
+            T.Element.zeroPointer,
+            // filterDiff
+            filterDescriptor.desc,
+            filterDiff.deviceReadWrite(using: dataQueue)))
+
+        // bias
+        try cudaCheck(status: cudnnConvolutionBackwardBias(
+            filterBiasBackQueue.cudnn.handle,
+            // alpha
+            T.Element.onePointer,
+            // yDiff
+            yTensorDescriptor.desc,
+            yDiff.deviceReadOnly(using: dataQueue),
+            // beta
+            T.Element.zeroPointer,
+            //
+            biasTensorDescriptor.desc,
+            biasDiff.deviceReadWrite(using: dataQueue)))
     }
 
     //--------------------------------------------------------------------------
     // selectForwardAlgorithm
     private mutating func selectForwardAlgorithm(
-        x: T,
-        properties: ConvolutionProperties,
-        _ deviceQueue: CudaQueue) throws
+        x: T, properties: ConvolutionProperties) throws
     {
         switch properties.forwardAlgorithm {
         case .deterministic:
-            let algs = try findForwardAlgorithms(x: x, deviceQueue)
+            let algs = try findForwardAlgorithms(x: x)
             var notFound = true
             for alg in algs {
                 if alg.determinism == CUDNN_DETERMINISTIC {
@@ -215,12 +263,12 @@ public struct CudaConvolution<T>: Logging where
             }
             
         case .fastest:
-            let algs = try findForwardAlgorithms(x: x, deviceQueue)
+            let algs = try findForwardAlgorithms(x: x)
             fwdAlgo = algs[0].algo
             fwdWorkspaceSize = algs[0].memory
             
         case .noWorkspace:
-            let algs = try findForwardAlgorithms(x: x, deviceQueue)
+            let algs = try findForwardAlgorithms(x: x)
             var algIndex = -1
             for i in 0..<algs.count {
                 if algs[i].memory == 0 { algIndex = i; break }
@@ -235,7 +283,7 @@ public struct CudaConvolution<T>: Logging where
             fwdWorkspaceSize = algs[algIndex].memory
             
         case .workspaceLimit:
-            let algs = try findForwardAlgorithms(x: x, deviceQueue)
+            let algs = try findForwardAlgorithms(x: x)
             var algIndex = -1
             for i in 0..<algs.count {
                 if algs[i].memory <= properties.forwardWorkspaceLimit {
@@ -257,7 +305,7 @@ public struct CudaConvolution<T>: Logging where
             
             // get the workspace size
             try cudaCheck(status: cudnnGetConvolutionForwardWorkspaceSize(
-                deviceQueue.cudnn.handle,
+                dataQueue.cudnn.handle,
                 xTensorDescriptor.desc,
                 filterDescriptor.desc,
                 convolutionDescriptor.desc,
@@ -268,7 +316,7 @@ public struct CudaConvolution<T>: Logging where
         
         // allocate workspace
         if fwdWorkspaceSize > 0 {
-            fwdWorkspace = try deviceQueue.device
+            fwdWorkspace = try dataQueue.device
                 .createArray(count: fwdWorkspaceSize, heapIndex: 0)
         }
         
@@ -285,13 +333,11 @@ public struct CudaConvolution<T>: Logging where
     //--------------------------------------------------------------------------
     // selectBackwardAlgorithm
     private mutating func selectBackwardAlgorithm(
-        x: T,
-        properties: ConvolutionProperties,
-        _ deviceQueue: CudaQueue) throws
+        x: T, properties: ConvolutionProperties) throws
     {
         switch properties.backwardDataAlgorithm {
         case .deterministic:
-            let algs = try findBackwardDataAlgorithms(x: x, deviceQueue)
+            let algs = try findBackwardDataAlgorithms(x: x)
             var notFound = true
             for alg in algs {
                 if alg.determinism == CUDNN_DETERMINISTIC {
@@ -312,12 +358,12 @@ public struct CudaConvolution<T>: Logging where
             }
 
         case .fastest:
-            let algs = try findBackwardDataAlgorithms(x: x, deviceQueue)
+            let algs = try findBackwardDataAlgorithms(x: x)
             bwdDataAlgo = algs[0].algo
             bwdDataWorkspaceSize = algs[0].memory
             
         case .noWorkspace:
-            let algs = try findBackwardDataAlgorithms(x: x, deviceQueue)
+            let algs = try findBackwardDataAlgorithms(x: x)
             var algIndex = -1
             for i in 0..<algs.count {
                 if algs[i].memory == 0 { algIndex = i; break }
@@ -332,7 +378,7 @@ public struct CudaConvolution<T>: Logging where
             bwdDataWorkspaceSize = algs[algIndex].memory
             
         case .workspaceLimit:
-            let algs = try findBackwardDataAlgorithms(x: x, deviceQueue)
+            let algs = try findBackwardDataAlgorithms(x: x)
             var algIndex = -1
             for i in 0..<algs.count {
                 if algs[i].memory <= properties.backwardDataWorkspaceLimit {
@@ -354,7 +400,7 @@ public struct CudaConvolution<T>: Logging where
             
             // get the workspace size
             try cudaCheck(status: cudnnGetConvolutionBackwardDataWorkspaceSize(
-                deviceQueue.cudnn.handle,
+                dataQueue.cudnn.handle,
                 filterDescriptor.desc,
                 yTensorDescriptor.desc,
                 convolutionDescriptor.desc,
@@ -366,7 +412,7 @@ public struct CudaConvolution<T>: Logging where
         // allocate workspace
         if bwdDataWorkspaceSize > 0 {
             bwdDataWorkspace =
-                try deviceQueue.device.createArray(count: bwdDataWorkspaceSize,
+                try dataQueue.device.createArray(count: bwdDataWorkspaceSize,
                                                    heapIndex: 0)
         }
 
@@ -385,7 +431,7 @@ public struct CudaConvolution<T>: Logging where
         // choose best backward filter algorithm
         switch properties.backwardFilterAlgorithm {
         case .deterministic:
-            let algs = try findBackwardFilterAlgorithms(x: x, deviceQueue)
+            let algs = try findBackwardFilterAlgorithms(x: x)
             var notFound = true
             for alg in algs {
                 if alg.determinism == CUDNN_DETERMINISTIC {
@@ -406,12 +452,12 @@ public struct CudaConvolution<T>: Logging where
             }
 
         case .fastest:
-            let algs = try findBackwardFilterAlgorithms(x: x, deviceQueue)
+            let algs = try findBackwardFilterAlgorithms(x: x)
             bwdFilterAlgo = algs[0].algo
             bwdFilterWorkspaceSize = algs[0].memory
             
         case .noWorkspace:
-            let algs = try findBackwardFilterAlgorithms(x: x, deviceQueue)
+            let algs = try findBackwardFilterAlgorithms(x: x)
             var algIndex = -1
             for i in 0..<algs.count {
                 if algs[i].memory == 0 { algIndex = i; break }
@@ -426,7 +472,7 @@ public struct CudaConvolution<T>: Logging where
             bwdFilterWorkspaceSize = algs[algIndex].memory
             
         case .workspaceLimit:
-            let algs = try findBackwardFilterAlgorithms(x: x, deviceQueue)
+            let algs = try findBackwardFilterAlgorithms(x: x)
             var algIndex = -1
             for i in 0..<algs.count {
                 if algs[i].memory <= properties.backwardFilterWorkspaceLimit {
@@ -449,7 +495,7 @@ public struct CudaConvolution<T>: Logging where
             
             // get the workspace size
             try cudaCheck(status: cudnnGetConvolutionBackwardFilterWorkspaceSize(
-                deviceQueue.cudnn.handle,
+                dataQueue.cudnn.handle,
                 xTensorDescriptor.desc,
                 yTensorDescriptor.desc,
                 convolutionDescriptor.desc,
@@ -461,7 +507,7 @@ public struct CudaConvolution<T>: Logging where
         // allocate workspace
         if bwdFilterWorkspaceSize > 0 {
             bwdFilterWorkspace =
-                try deviceQueue.device.createArray(count: bwdFilterWorkspaceSize,
+                try dataQueue.device.createArray(count: bwdFilterWorkspaceSize,
                                                    heapIndex: 0)
         }
 
@@ -479,8 +525,8 @@ public struct CudaConvolution<T>: Logging where
     
     //--------------------------------------------------------------------------
     // findForwardAlgorithms
-    private func findForwardAlgorithms(x: T, _ deviceQueue: CudaQueue) throws
-        -> [cudnnConvolutionFwdAlgoPerf_t]
+    private func findForwardAlgorithms(x: T) throws ->
+        [cudnnConvolutionFwdAlgoPerf_t]
     {
         // get the list of forward algorithms
         var returnedAlgoCount: Int32 = 0
@@ -489,7 +535,7 @@ public struct CudaConvolution<T>: Logging where
             count: ConvolutionFwdAlgorithm.allCases.count)
 
         try cudaCheck(status: cudnnFindConvolutionForwardAlgorithm(
-            deviceQueue.cudnn.handle,
+            dataQueue.cudnn.handle,
             xTensorDescriptor.desc,
             filterDescriptor.desc,
             convolutionDescriptor.desc,
@@ -520,8 +566,8 @@ public struct CudaConvolution<T>: Logging where
     
     //--------------------------------------------------------------------------
     // findBackwardDataAlgorithms
-    private func findBackwardDataAlgorithms(x: T, _ deviceQueue: CudaQueue)
-        throws -> [cudnnConvolutionBwdDataAlgoPerf_t]
+    private func findBackwardDataAlgorithms(x: T) throws ->
+        [cudnnConvolutionBwdDataAlgoPerf_t]
     {
         // get the list of forward algorithms
         var returnedAlgoCount: Int32 = 0
@@ -530,7 +576,7 @@ public struct CudaConvolution<T>: Logging where
             count: ConvolutionBwdDataAlgorithm.allCases.count)
 
         try cudaCheck(status: cudnnFindConvolutionBackwardDataAlgorithm(
-            deviceQueue.cudnn.handle,
+            dataQueue.cudnn.handle,
             filterDescriptor.desc,
             yTensorDescriptor.desc,
             convolutionDescriptor.desc,
@@ -560,8 +606,8 @@ public struct CudaConvolution<T>: Logging where
     
     //--------------------------------------------------------------------------
     // findBackwardFilterAlgorithms
-    private func findBackwardFilterAlgorithms(x: T, _ deviceQueue: CudaQueue)
-        throws -> [cudnnConvolutionBwdFilterAlgoPerf_t]
+    private func findBackwardFilterAlgorithms(x: T) throws ->
+        [cudnnConvolutionBwdFilterAlgoPerf_t]
     {
         // get the list of forward algorithms
         var returnedAlgoCount: Int32 = 0
@@ -570,7 +616,7 @@ public struct CudaConvolution<T>: Logging where
             count: ConvolutionBwdFilterAlgorithm.allCases.count)
         
         try cudaCheck(status: cudnnFindConvolutionBackwardFilterAlgorithm(
-            deviceQueue.cudnn.handle,
+            dataQueue.cudnn.handle,
             xTensorDescriptor.desc,
             yTensorDescriptor.desc,
             convolutionDescriptor.desc,
