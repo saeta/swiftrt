@@ -16,49 +16,58 @@
 import Foundation
 
 //==============================================================================
-public enum PoolingMode {
-    case averageExcludePadding
-    case averageIncludePadding
-    case max
-    case maxDeterministic
+// QueueDeepFunctions
+public protocol QueueDeepFunctions {
+    func convolutionInstance<T, FN>(
+        x: T,
+        yShape: inout DataShape,
+        filter: T,
+        bias: T,
+        activation: ActivationMode,
+        strides: [Int],
+        padding: [Int],
+        dilations: [Int],
+        properties: ConvolutionProperties,
+        device: CudaDevice,
+        filterBiasBackQueueIndex: Int) throws -> FN
+        where FN: ConvolutionFunction, FN.T == T
 }
 
 //==============================================================================
-public enum ActivationMode {
-    case sigmoid
-    case relu
-    case tanh
-    case clippedRelu
-    case elu
-    case identity
+// default implementation on CPU
+public extension QueueDeepFunctions {
+    func convolutionInstance<T, FN>(
+        x: T,
+        yShape: inout DataShape,
+        filter: T,
+        bias: T,
+        activation: ActivationMode,
+        strides: [Int],
+        padding: [Int],
+        dilations: [Int],
+        properties: ConvolutionProperties,
+        device: CudaDevice,
+        filterBiasBackQueueIndex: Int) throws -> FN
+        where FN: ConvolutionFunction, FN.T == T
+    {
+        // Insert a CPU implementation here to be compiled by MLIR
+        fatalError()
+    }
 }
 
 //==============================================================================
-public enum TransposeOp {
-    case transpose
-    case noTranspose
-    case conjugateTranspose
-}
-
-//==============================================================================
-/// DeviceLimits
-/// parameters defining maximum device capabilties
-public struct DeviceLimits {
-    let maxComputeSharedMemorySize: Int
-    let maxComputeWorkGroupCount: (Int, Int, Int)
-    let maxComputeWorkGroupInvocations: Int
-    let maxComputeWorkGroupSize: (Int, Int, Int)
-    let maxMemoryAllocationCount: Int
-}
-
-//==============================================================================
-public enum SoftmaxAlgorithm {
-    case accurate, fast, log
-}
-
-//==============================================================================
-public enum SoftmaxMode {
-    case channel, instance
+// ConvolutionFunction
+public protocol ConvolutionFunction {
+    associatedtype T where T: TensorView, T.Element: AnyFloatingPoint
+    
+    // infer y = f(x)
+    func inferring(y: inout T, from x: T, filter: T, bias: T) throws
+    
+    // compute gradients
+    func gradient(y: T, yDiff: T,
+                  filter: T, filterDiff: inout T,
+                  bias: T, biasDiff: inout T,
+                  x: T, xDiff: inout T) throws
 }
 
 //==============================================================================
@@ -129,3 +138,50 @@ public enum ConvolutionMode: CaseIterable {
     case convolution
     case crossCorrelation
 }
+
+//==============================================================================
+public enum PoolingMode {
+    case averageExcludePadding
+    case averageIncludePadding
+    case max
+    case maxDeterministic
+}
+
+//==============================================================================
+public enum ActivationMode {
+    case sigmoid
+    case relu
+    case tanh
+    case clippedRelu
+    case elu
+    case identity
+}
+
+//==============================================================================
+public enum TransposeOp {
+    case transpose
+    case noTranspose
+    case conjugateTranspose
+}
+
+//==============================================================================
+/// DeviceLimits
+/// parameters defining maximum device capabilties
+public struct DeviceLimits {
+    let maxComputeSharedMemorySize: Int
+    let maxComputeWorkGroupCount: (Int, Int, Int)
+    let maxComputeWorkGroupInvocations: Int
+    let maxComputeWorkGroupSize: (Int, Int, Int)
+    let maxMemoryAllocationCount: Int
+}
+
+//==============================================================================
+public enum SoftmaxAlgorithm {
+    case accurate, fast, log
+}
+
+//==============================================================================
+public enum SoftmaxMode {
+    case channel, instance
+}
+

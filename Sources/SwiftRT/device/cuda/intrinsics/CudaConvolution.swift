@@ -15,12 +15,74 @@
 //
 import CCuda
 
-// *** TODO design questions!
-// 1) class or struct, how are things retained, reused, etc?
-// 2) should the input be retained to guarentee that init
-//    matches the same shape as inferring? Or just assert in inferring?
+////==============================================================================
+//// CudaQueue protocol default override implementation
+//public extension CudaQueue {
+//    func convolutionInstance<T, FN>(
+//        x: T,
+//        yShape: inout DataShape,
+//        filter: T,
+//        bias: T,
+//        activation: ActivationMode,
+//        strides: [Int],
+//        padding: [Int],
+//        dilations: [Int],
+//        properties: ConvolutionProperties,
+//        device: CudaDevice,
+//        filterBiasBackQueueIndex: Int) throws -> FN
+//        where FN: ConvolutionFunction, FN.T == T
+//    {
+//        return try CudaConvolution(
+//            x: x,
+//            yShape: &yShape,
+//            filter: filter,
+//            bias: bias,
+//            activation: activation,
+//            strides: strides,
+//            padding: padding,
+//            dilations: dilations,
+//            properties: properties,
+//            device: device,
+//            filterBiasBackQueueIndex: filterBiasBackQueueIndex)
+//    }
+//}
+//
 
-public struct CudaConvolution<T>: Logging where
+//==============================================================================
+// CudaQueue protocol default override implementation
+public extension CudaQueue {
+    func convolutionInstance<T>(
+        x: T,
+        yShape: inout DataShape,
+        filter: T,
+        bias: T,
+        activation: ActivationMode,
+        strides: [Int],
+        padding: [Int],
+        dilations: [Int],
+        properties: ConvolutionProperties,
+        device: CudaDevice,
+        filterBiasBackQueueIndex: Int) throws -> CudaConvolution<T>
+        where T: TensorView, T.Element: AnyFloatingPoint
+    {
+        return try CudaConvolution(
+            x: x,
+            yShape: &yShape,
+            filter: filter,
+            bias: bias,
+            activation: activation,
+            strides: strides,
+            padding: padding,
+            dilations: dilations,
+            properties: properties,
+            device: device,
+            filterBiasBackQueueIndex: filterBiasBackQueueIndex)
+    }
+}
+
+//==============================================================================
+// CudaConvolution
+public struct CudaConvolution<T>: ConvolutionFunction, Logging where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // queues
@@ -62,16 +124,17 @@ public struct CudaConvolution<T>: Logging where
                 padding: [Int],
                 dilations: [Int],
                 properties: ConvolutionProperties,
-                dataQueue: CudaQueue? = nil,
-                filterBiasBackQueue: CudaQueue? = nil) throws
+                device: CudaDevice,
+                filterBiasBackQueueIndex: Int) throws
     {
         //----------------------------------
         // queues
+        // TODO: change this when devices have fixed collections of queues
         // initialization can create workspaces on the devices
         // associated with the queues, so we hold on to them
         let defaultQueue = _Queues.current as! CudaQueue
-        self.dataQueue = dataQueue ?? defaultQueue
-        self.filterBiasBackQueue = filterBiasBackQueue ?? defaultQueue
+        self.dataQueue = defaultQueue
+        self.filterBiasBackQueue = defaultQueue
         
         xTensorDescriptor = try x.createTensorDescriptor()
         filterDescriptor = try FilterDescriptor(filter)
