@@ -62,6 +62,10 @@ public protocol _Logging {
     /// message formatting.
     var logNestingLevel: Int { get }
 
+    /// tests if a message will be written to the log
+    /// - Parameter level: the level of the message (error, warning, ...)
+    func willLog(level: LogLevel) -> Bool
+    
     /// writes a message to the log
     /// - Parameter message: the message to write
     /// - Parameter level: the level of the message (error, warning, ...)
@@ -94,12 +98,19 @@ public protocol _Logging {
 public extension _Logging {
     //--------------------------------------------------------------------------
     /// writeLog
+    func willLog(level: LogLevel) -> Bool {
+        return level <= log.level || level <= logLevel
+    }
+
+    //--------------------------------------------------------------------------
+    /// writeLog
     func writeLog(_ message: @autoclosure () -> String,
                   level: LogLevel = .error,
                   indent: Int = 0,
                   trailing: String = "",
-                  minCount: Int = 80) {
-        guard level <= log.level || level <= logLevel else { return }
+                  minCount: Int = 80)
+    {
+        guard willLog(level: level) else { return }
         log.write(level: level,
                   message: message(),
                   nestingLevel: indent + logNestingLevel,
@@ -113,8 +124,9 @@ public extension _Logging {
                     categories: LogCategories,
                     indent: Int = 0,
                     trailing: String = "",
-                    minCount: Int = 80) {
-        guard log.level >= .diagnostic || logLevel >= .diagnostic else { return}
+                    minCount: Int = 80)
+    {
+        guard willLog(level: .diagnostic) else { return}
         // if subcategories have been selected on the log object
         // then make sure the caller's category is desired
         if let mask = log.categories?.rawValue,

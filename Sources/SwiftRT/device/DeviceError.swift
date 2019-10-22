@@ -18,6 +18,7 @@ import Foundation
 //==============================================================================
 /// DeviceError
 public enum DeviceError : Error {
+    case initializeFailed
     case queueError(idPath: [Int], message: String)
     case timeout(idPath: [Int], message: String)
 }

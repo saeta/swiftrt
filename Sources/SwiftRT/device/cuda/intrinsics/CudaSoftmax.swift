@@ -41,8 +41,7 @@ public struct CudaSoftmax<T> where
         // create x and y tensor descriptor
         tensorDescriptor = try x.createTensorDescriptor()
 
-        // return the shape of the output y and create a tensorDescriptor
-        // with the same scalarType for y
+        // return the shape of the output y
         yShape = x.shape
     }
     

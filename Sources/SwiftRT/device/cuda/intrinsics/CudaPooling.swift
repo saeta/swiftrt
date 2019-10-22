@@ -58,7 +58,7 @@ public struct CudaPooling<T> where
             &extents))
 
         // return the shape of the output y and create a tensorDescriptor
-        // with the same scalarType for y
+        // with the same scalarType for y as x
         yShape = DataShape(extents: extents.map { Int($0) })
         yTensorDescriptor = try x.createTensorDescriptor(asShape: yShape)
     }

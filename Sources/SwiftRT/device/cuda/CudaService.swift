@@ -430,8 +430,13 @@ public final class ConvolutionDescriptor : ObjectTracking {
 
     //--------------------------------------------------------------------------
     // initializers
-	public init(scalarType: ScalarType, rank: Int, pad: [Int],
-	            stride: [Int], dilation: [Int], mode: ConvolutionMode) throws {
+	public init(scalarType: ScalarType,
+                rank: Int,
+                padding: [Int],
+	            strides: [Int],
+                dilations: [Int],
+                mode: ConvolutionMode) throws
+    {
 		// create the descriptor
 		var temp: cudnnConvolutionDescriptor_t?
 		try cudaCheck(status: cudnnCreateConvolutionDescriptor(&temp))
@@ -441,9 +446,9 @@ public final class ConvolutionDescriptor : ObjectTracking {
 		try cudaCheck(status: cudnnSetConvolutionNdDescriptor(
 			desc,
             Int32(rank),
-			pad.map { Int32($0) },
-			stride.map { Int32($0) },
-			dilation.map { Int32($0) },
+			padding.map { Int32($0) },
+			strides.map { Int32($0) },
+			dilations.map { Int32($0) },
 			mode.cudnn,
 			scalarType.cudnn))
 
@@ -509,7 +514,8 @@ public final class DropoutDescriptor: ObjectTracking {
 // FilterDescriptor
 public final class FilterDescriptor : ObjectTracking {
 	// initializers
-    public init<T>(tensor: T) throws where T: TensorView, T.Element: AnyNumeric
+    public init<T>(_ tensor: T) throws where
+        T: TensorView, T.Element: AnyNumeric
     {
 		// create the descriptor
 		var temp: cudnnFilterDescriptor_t?

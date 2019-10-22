@@ -20,6 +20,7 @@ public struct CudaDense<T> where
 {
     // properties
     private let activation: ActivationMode
+    private let activationDescriptor: ActivationDescriptor!
     private let biasTensorDescriptor: TensorDescriptor
     private let yTensorDescriptor: TensorDescriptor
     private let weight: T
@@ -31,13 +32,20 @@ public struct CudaDense<T> where
                 yShape: inout DataShape,
                 weight: T,
                 bias: T,
-                activation: ActivationMode) throws
+                activation: ActivationMode,
+                nan: NanPropagation,
+                reluCeiling: Double = 0) throws
     {
         assert(x.rank == 2 && weight.rank == 2 && bias.rank == 1)
         self.weight = weight
         self.bias = bias
-        self.activation = activation
         
+        // activation
+        self.activation = activation
+        activationDescriptor = activation == .identity ? nil :
+                try ActivationDescriptor(mode: activation,
+                                         nan: nan,
+                                         reluCeiling: reluCeiling)
         // setup bias
         biasTensorDescriptor = try bias.createTensorDescriptor()
         
@@ -52,7 +60,8 @@ public struct CudaDense<T> where
     public func inferring(y: inout T, from x: T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
         
-        // TODO: is there a better fused kernel for y = wx + b??
+        // TODO: is there a better fused kernel for Y = WX + b??
+        // a row major matmul!
         try deviceQueue.gemm(
             transA: .noTranspose, matrixA: x,
             transB: .noTranspose, matrixB: weight,
@@ -70,15 +79,59 @@ public struct CudaDense<T> where
             // y
             yTensorDescriptor.desc,
             y.deviceReadWrite(using: deviceQueue)))
+        
+        // activation TODO: verify that doing inplace is okay
+        if activation != .identity {
+            try cudaCheck(status: cudnnActivationForward(
+                deviceQueue.cudnn.handle,
+                activationDescriptor!.desc,
+                // alpha
+                T.Element.onePointer,
+                // x
+                yTensorDescriptor.desc,
+                x.deviceReadOnly(using: deviceQueue),
+                // beta
+                T.Element.zeroPointer,
+                // y
+                yTensorDescriptor.desc,
+                y.deviceReadWrite(using: deviceQueue)))
+        }
     }
 
     //--------------------------------------------------------------------------
     // gradient
-    public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
+    public func gradient(y: T, yDiff: T, activationDiff: inout T,
+                         x: T, xDiff: inout T) throws {
         let deviceQueue = _Queues.current as! CudaQueue
+        
+        if activation != .identity {
+            try cudaCheck(status: cudnnActivationBackward(
+                deviceQueue.cudnn.handle,
+                activationDescriptor!.desc,
+                // alpha
+                T.Element.onePointer,
+                // y
+                yTensorDescriptor.desc,
+                y.deviceReadOnly(using: deviceQueue),
+                // dy
+                yTensorDescriptor.desc,
+                yDiff.deviceReadOnly(using: deviceQueue),
+                // x
+                yTensorDescriptor.desc,
+                x.deviceReadOnly(using: deviceQueue),
+                // beta
+                T.Element.zeroPointer,
+                // dx
+                yTensorDescriptor.desc,
+                activationDiff.deviceReadWrite(using: deviceQueue)))
 
-        try deviceQueue.gemm(transA: .noTranspose, matrixA: yDiff,
-                             transB: .transpose, matrixB: weight,
-                             matrixC: &xDiff)
+            try deviceQueue.gemm(transA: .noTranspose, matrixA: activationDiff,
+                                 transB: .transpose, matrixB: weight,
+                                 matrixC: &xDiff)
+        } else {
+            try deviceQueue.gemm(transA: .noTranspose, matrixA: yDiff,
+                                 transB: .transpose, matrixB: weight,
+                                 matrixC: &xDiff)
+        }
     }
 }
