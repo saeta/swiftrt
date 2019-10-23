@@ -62,12 +62,13 @@ class test_Syntax: XCTestCase {
         Platform.log.level = .diagnostic
         Platform.log.categories = [.properties]
         Platform.local.servicePriority = [vulkanService]
-        Platform.local.properties[vulkanService] = [
-            vulkanApplicationName : "MyApp",
-            vulkanApplicationVersion : 41,
-            vulkanEngineName : "MyEngine",
-            vulkanEngineVersion : 42,
-            vulkanApiVersion : VK_API_VERSION_1_0
+        let vulkan = Platform.local.services[vulkanService] as? VulkanService
+        vulkan?.configuration = [
+            .applicationName : "MyApp",
+            .applicationVersion : 41,
+            .engineName : "MyEngine",
+            .engineVersion : 42,
+            .apiVersion : VK_API_VERSION_1_0
         ]
         
         do {

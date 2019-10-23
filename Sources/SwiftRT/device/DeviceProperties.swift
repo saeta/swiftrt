@@ -29,14 +29,15 @@ public let cudaService = "cuda"
 
 //==============================================================================
 /// Vulkan
-/// a set of predefined property names to simplify configuring
-/// the service properties
 public let vulkanService = "vulkan"
-public let vulkanApplicationName = "applicationName"
-public let vulkanApplicationVersion = "applicationVersion"
-public let vulkanEngineName = "engineName"
-public let vulkanEngineVersion = "engineVersion"
-public let vulkanApiVersion = "apiVersion"
+
+public enum VulkanPropertyKey: Int {
+    case applicationName
+    case applicationVersion
+    case engineName
+    case engineVersion
+    case apiVersion
+}
 
 //==============================================================================
 public enum MemoryAddressing { case unified, discreet }

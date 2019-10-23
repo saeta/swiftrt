@@ -46,9 +46,6 @@ public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     var id: Int { get set }
     /// the root log
     var log: Log { get set }
-    /// dictionary of service configuration property default overrides
-    /// [service name : [property name : property type specific value]]
-    var properties: [String : [String : Any]] { get set }
     /// location of dynamically loaded service modules
     var serviceModuleDirectory: URL { get set }
     /// ordered list of service names specifying the order for auto selection
@@ -160,6 +157,12 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     /// the type of memory addressing this device uses
     var memoryAddressing: MemoryAddressing { get }
 
+    //    //-------------------------------------
+    //    /// a collection of device queues that can be used for computation
+    //    var computeQueues: [DeviceQueue] { get }
+    //    /// a collection of device queues that can be used for data transfer
+    //    var transferQueues: [DeviceQueue] { get }
+    
     //-------------------------------------
     // device resource functions
     /// creates an array on this device

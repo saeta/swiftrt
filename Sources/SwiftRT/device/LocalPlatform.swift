@@ -233,7 +233,6 @@ final public class Platform: LocalPlatform {
     public var deviceErrorHandler: DeviceErrorHandler?
     public var _errorMutex: Mutex = Mutex()
     public var _lastError: Error? = nil
-    public var properties = [String : [String : Any]]()
     public var deviceIdPriority: [Int] = [0]
     public var id: Int = 0
     public static let local = Platform()

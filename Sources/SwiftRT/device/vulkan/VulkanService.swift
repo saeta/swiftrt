@@ -19,7 +19,7 @@ import CVulkan
 //==============================================================================
 // VulkanService
 public final class VulkanService: LocalComputeService {
-    // service protocol properties
+    // service protocol configuration
     public private(set) weak var platform: ComputePlatform!
     public private(set) var trackingId = 0
     public private(set) var devices = [ComputeDevice]()
@@ -29,8 +29,9 @@ public final class VulkanService: LocalComputeService {
     public let id: Int
     public var logInfo: LogInfo
     public let name: String
+    public var configuration: [VulkanPropertyKey: Any]
 
-    // vulkan specific properties
+    // vulkan specific configuration
     private var instance: VkInstance!
     private var debugReportCallback: VkDebugReportCallbackEXT!
     
@@ -54,6 +55,7 @@ public final class VulkanService: LocalComputeService {
         self.id = id
         self.name = name ?? "vulkan"
         self.logInfo = logInfo
+        configuration = [VulkanPropertyKey: Any]()
         
         // create the vulkan instance
         instance = try createVkInstance()
@@ -142,20 +144,20 @@ public final class VulkanService: LocalComputeService {
         #endif
 
         //-----------------------------------
-        // get optional application name from vulkan properties
-        var cApplicationName = mallocPropertyCString(for: vulkanApplicationName)
+        // get optional application name from vulkan configuration
+        var cApplicationName = mallocPropertyCString(for: .applicationName)
         defer { free(cApplicationName) }
         let applicationVersion =
-            UInt32((getValue(for: vulkanApplicationVersion) as? Int) ?? 0)
+            UInt32((configuration[.applicationVersion] as? Int) ?? 0)
         
-        // get optional engine name from vulkan properties
-        var cEngineName = mallocPropertyCString(for: vulkanEngineName)
+        // get optional engine name from vulkan configuration
+        var cEngineName = mallocPropertyCString(for: .engineName)
         defer { free(cEngineName) }
         
         let engineVersion =
-            UInt32((getValue(for: vulkanEngineVersion) as? Int) ?? 0)
+            UInt32((configuration[.engineVersion] as? Int) ?? 0)
         
-        let apiVersion = UInt32((getValue(for: vulkanApiVersion) as? Int32) ??
+        let apiVersion = UInt32((configuration[.apiVersion] as? Int32) ??
             VK_API_VERSION_1_1)
 
         // initialize the VkApplicationInfo.
@@ -236,26 +238,18 @@ public final class VulkanService: LocalComputeService {
     
     //--------------------------------------------------------------------------
     // mallocPropertyCString
-    // retrieves a String property value from the Platform.properties
+    // retrieves a String property value from the Platform.configuration
     // dictionary and converts the value into a CString.
     // NOTE: It is the callers responsibility to `free` the CString after use
-    private func mallocPropertyCString(for property: String) ->
+    private func mallocPropertyCString(for property: VulkanPropertyKey) ->
         UnsafeMutablePointer<Int8>?
     {
-        if let value = Platform.local.properties[self.name]?[property] {
+        if let value = configuration[property] {
             assert(value is String, "\(property) must be of type String")
             return strdup(value as! String)
         } else {
             return nil
         }
-    }
-
-    //--------------------------------------------------------------------------
-    // getValue
-    // retrieves a property value from the Platform.serviceProperties dictionary
-    // The caller must cast Any to the known value type before use
-    private func getValue(for property: String) -> Any? {
-        return Platform.local.properties[self.name]?[property]
     }
 
     //--------------------------------------------------------------------------
