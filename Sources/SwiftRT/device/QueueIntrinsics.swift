@@ -45,7 +45,7 @@ public protocol QueueIntrinsics {
     /// reduced dimensions are removed.
     /// - Parameter x: the tensor value
     /// - Parameter axes: The axes to reduce
-    /// - Precondition: Each value in `axes` must be in the range `-rank..<rank`.
+    /// - Precondition: Each value in `axes` must be in the range `-rank..<rank`
     func argmax<T>(x: T, along axes: Vector<IndexElement>?,
                    result: inout T.IndexView) where
         T: TensorView, T.Element: Numeric
@@ -53,7 +53,7 @@ public protocol QueueIntrinsics {
     /// reduced dimensions are removed.
     /// - Parameter x: the tensor value
     /// - Parameter axes: The axes to reduce
-    /// - Precondition: Each value in `axes` must be in the range `-rank..<rank`.
+    /// - Precondition: Each value in `axes` must be in the range `-rank..<rank`
     func argmin<T>(x: T, along axes: Vector<IndexElement>?,
                    result: inout T.IndexView) where
         T: TensorView, T.Element: Numeric
@@ -150,13 +150,13 @@ public protocol QueueIntrinsics {
     /// dimensions are removed.
     /// - Parameter x: the tensor value
     /// - Parameter axes: The axes to reduce
-    /// - Precondition: Each value in `axes` must be in the range `-rank...rank`.
+    /// - Precondition: Each value in `axes` must be in the range `-rank...rank`
     func mean<T>(x: T, along axes: Vector<IndexElement>?, result: inout T) where
         T: TensorView, T.Element: FloatingPoint
     /// Returns the minimum values along the specified axes. The reduced
     /// dimensions are removed.
     /// - Parameter axes: The dimensions to reduce.
-    /// - Precondition: Each value in `axes` must be in the range `-rank..<rank`.
+    /// - Precondition: Each value in `axes` must be in the range `-rank..<rank`
     func min<T>(x: T, along axes: [Int], result: inout T) where
         T: TensorView, T.Element: Numeric
     /// Computes the element-wise minimum of two tensors.
@@ -183,7 +183,7 @@ public protocol QueueIntrinsics {
     /// Product of the input elements to produce a scalar
     /// - Parameter x: the tensor value
     /// - Parameter axes: The axes to reduce
-    /// - Precondition: Each value in `axes` must be in the range `-rank...rank`.
+    /// - Precondition: Each value in `axes` must be in the range `-rank...rank`
     func prod<T>(x: T, along axes: Vector<IndexElement>?, result: inout T) where
         T: TensorView, T.Element: AnyNumeric
     /// Replaces elements of `x` with `other` in the lanes where `mask` is`true`
@@ -191,8 +191,8 @@ public protocol QueueIntrinsics {
     /// - Precondition: `x` and `other` must have the same shape. If
     ///   `x` and `other` are scalar, then `mask` must also be scalar. If
     ///   `x` and `other` have rank greater than or equal to `1`, then `mask`
-    ///   must be either have the same shape as `self` or be a 1-D `TensorView` such
-    ///   that `mask.scalarCount == self.shape[0]`.
+    ///   must be either have the same shape as `self` or be a 1-D `TensorView`
+    ///   such that `mask.scalarCount == self.shape[0]`.
     func replacing<T>(x: T, with other: T, where mask: T.BoolView,
                       result: inout T) where T: TensorView
     /// Computes the element-wise `rsqrt`
