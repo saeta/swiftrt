@@ -122,11 +122,8 @@ class test_DataMigration: XCTestCase {
 
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let queue1 = try Platform.local
-                .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
-            
-            let queue2 = try Platform.local
-                .createQueue(deviceId: 2, serviceName: "cpuUnitTest")
+            let queue1 = Platform.testDiscreetCpu1.computeQueues[0]
+            let queue2 = Platform.testDiscreetCpu2.computeQueues[0]
 
             // create a tensor and validate migration
             var view = Volume<Float>((2, 3, 4), any: 0..<24)
@@ -202,16 +199,15 @@ class test_DataMigration: XCTestCase {
 
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let queue1 = try Platform.local
-                .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
-            
-            let queue2 = try Platform.local
-                .createQueue(deviceId: 2, serviceName: "cpuUnitTest")
+            let device1 = Platform.testDiscreetCpu1
+            let queue1 = device1.computeQueues[0]
+            let device2 = Platform.testDiscreetCpu2
+            let queue2 = device2.computeQueues[0]
 
             // create a Matrix on device 1 and fill with indexes
             // memory is only allocated on device 1. This also shows how a
             // temporary can be used in a scope. No memory is copied.
-            var matrix = using(queue1) {
+            var matrix = using(device1) {
                 Matrix<Float>((3, 2)).filledWithIndex()
             }
 
@@ -232,7 +228,7 @@ class test_DataMigration: XCTestCase {
             // the host, the value is retrieved, and the temp is released.
             // This syntax is good for experiments, but should not be used
             // for repetitive actions
-            var sum = try using(queue1) {
+            var sum = try using(device1) {
                 try matrix.sum().asValue()
             }
             XCTAssert(sum == 15.0)
@@ -257,13 +253,13 @@ class test_DataMigration: XCTestCase {
             // Then `asValue` causes a host array to be allocated, and the
             // the data is copied from device 2 to host, the value is returned
             // and the temporary tensor is released.
-            sum = try using(queue2) {
+            sum = try using(device2) {
                 try matrix.sum().asValue()
             }
             XCTAssert(sum == 15.0)
 
             // matrix is overwritten with a new array on device 1
-            matrix = using(queue1) {
+            matrix = using(device1) {
                 matrix.filledWithIndex()
             }
             
@@ -274,7 +270,7 @@ class test_DataMigration: XCTestCase {
             // then `asValue` creates a host array and the result is
             // copied from device 2 to the host array, and then the tensor
             // is released.
-            sum = try using(queue2) {
+            sum = try using(device2) {
                 try matrix.sum().asValue()
             }
             XCTAssert(sum == 15.0)
@@ -295,13 +291,12 @@ class test_DataMigration: XCTestCase {
             
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let queue1 = try Platform.local
-                .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
-            
+            let device1 = Platform.testDiscreetCpu1
+
             // fill with index on device 1
             let index = (1, 1)
             var matrix1 = Matrix<Float>((3, 2))
-            using(queue1) {
+            using(device1) {
                 fillWithIndex(&matrix1)
             }
             // testing a value causes the data to be copied to the host
@@ -335,17 +330,16 @@ class test_DataMigration: XCTestCase {
             
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let queue1 = try Platform.local
-                .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
-            
-            let queue2 = try Platform.local
-                .createQueue(deviceId: 2, serviceName: "cpuUnitTest")
+            let device1 = Platform.testDiscreetCpu1
+            let queue1 = device1.computeQueues[0]
+            let device2 = Platform.testDiscreetCpu2
+            let queue2 = device2.computeQueues[0]
 
             let index = (1, 1)
             var matrix1 = Matrix<Float>((3, 2))
 
             // allocate array on device 1 and fill with indexes
-            using(queue1) {
+            using(device1) {
                 fillWithIndex(&matrix1)
             }
             
@@ -362,19 +356,19 @@ class test_DataMigration: XCTestCase {
             _ = try matrix1.readOnly(using: queue2)
 
             // sum device 1 copy should be 15
-            let sum1 = try using(queue1) {
+            let sum1 = try using(device1) {
                 try matrix1.sum().asValue()
             }
             XCTAssert(sum1 == 15.0)
 
             // clear the device 0 master copy
-            using(queue1) {
+            using(device1) {
                 fill(&matrix1, with: 0)
             }
 
             // sum device 1 copy should now also be 0
             // sum device 1 copy should be 15
-            let sum2 = try using(queue2) {
+            let sum2 = try using(device2) {
                 try matrix1.sum().asValue()
             }
             XCTAssert(sum2 == 0)

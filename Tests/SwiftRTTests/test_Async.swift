@@ -107,16 +107,13 @@ class test_Async: XCTestCase {
             Platform.log.level = .diagnostic
             Platform.log.categories = [.dataAlloc, .dataCopy, .scheduling, .queueSync]
 
-            // create a named queue on a discreet device
-            // cpuUnitTest device 1 is a discreet memory versions for testing
-            let queue1 = try Platform.local
-                .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
+            let device1 = Platform.testDiscreetCpu1
             
             let m1 = Matrix<Int32>((2, 5), name: "m1", any: 0..<10)
             let m2 = Matrix<Int32>((2, 5), name: "m2", any: 0..<10)
 
             // perform on user provided discreet memory queue
-            let result = using(queue1) { m1 + m2 }
+            let result = using(device1) { m1 + m2 }
 
             // synchronize with host queue and retrieve result values
             let values = try result.array()
@@ -138,25 +135,21 @@ class test_Async: XCTestCase {
         do {
             Platform.log.level = .diagnostic
             
-            // create named queues on two discreet devices
-            // cpuUnitTest device 1 and 2 are discreet memory versions
-            let queue1 = try Platform.local
-                .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
-            let queue2 = try Platform.local
-                .createQueue(deviceId: 2, serviceName: "cpuUnitTest")
+            let device1 = Platform.testDiscreetCpu1
+            let device2 = Platform.testDiscreetCpu2
 
             let m1 = Matrix<Int32>((2, 3), name: "m1", any: 0..<6)
             let m2 = Matrix<Int32>((2, 3), name: "m2", any: 0..<6)
             let m3 = Matrix<Int32>((2, 3), name: "m3", any: 0..<6)
 
             // sum the values with a delay on device 1
-            let sum_m1m2: Matrix<Int32> = using(queue1) {
+            let sum_m1m2: Matrix<Int32> = using(device1) {
                 delayQueue(atLeast: 0.1)
                 return m1 + m2
             }
 
             // multiply the values on device 2
-            let result = using(queue2) {
+            let result = using(device2) {
                 sum_m1m2 * m3
             }
 
@@ -180,44 +173,13 @@ class test_Async: XCTestCase {
     }
 
     //==========================================================================
-    // test_temporaryQueueShutdown
-    func test_temporaryQueueShutdown() {
-        do {
-            Platform.log.level = .diagnostic
-            
-            for i in 0..<1000 {
-                // create a matrix without any storage allocated
-                var matrix = Matrix<Int32>((3, 4))
-                
-                // create a queue just for this closure
-                // it will probably try to deinit before `fillWithIndex` is
-                // complete
-                using(try Platform.local.createQueue()) {
-                    fillWithIndex(&matrix)
-                }
-                
-                // synchronize with host queue and retrieve result values
-                let values = try matrix.array()
-                let expected = [Int32](0..<12)
-                XCTAssert(values == expected, "iteration: \(i) failed")
-            }
-        } catch {
-            XCTFail(String(describing: error))
-        }
-        if ObjectTracker.global.hasUnreleasedObjects {
-            XCTFail(ObjectTracker.global.getActiveObjectReport())
-        }
-    }
-
-    //==========================================================================
     // test_QueueEventWait
     func test_QueueEventWait() {
         do {
             Platform.log.level = .diagnostic
             Platform.local.log.categories = [.queueSync]
             
-            let queue = try Platform.local
-                    .createQueue(serviceName: "cpuUnitTest")
+            let queue = Platform.testDiscreetCpu1.computeQueues[0]
             let event = try queue.createEvent()
             queue.delayQueue(atLeast: 0.001)
             try queue.record(event: event).wait()
@@ -259,7 +221,7 @@ class test_Async: XCTestCase {
     func test_perfRecordQueueEvent() {
         #if !DEBUG
         do {
-            let queue = try Platform.local.createQueue()
+            let queue = Platform.testDiscreetCpu1.computeQueues[0]
             self.measure {
                 do {
                     for _ in 0..<10000 {

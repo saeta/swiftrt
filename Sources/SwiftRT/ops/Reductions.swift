@@ -20,7 +20,7 @@ public func all<T>(_ x: T, alongAxes axes: Vector<IndexElement>? = nil,
                    result: inout T)
     where T: TensorView, T.Element == Bool
 {
-    _Queues.current.all(x: x, along: axes, result: &result)
+    DeviceContext.currentComputeQueue.all(x: x, along: axes, result: &result)
 }
 
 /// returns new view
@@ -76,7 +76,7 @@ public func mean<T>(_ x: T, alongAxes axes: Vector<IndexElement>? = nil,
                     result: inout T)
     where T: TensorView, T.Element: BinaryFloatingPoint
 {
-    _Queues.current.mean(x: x, along: axes, result: &result)
+    DeviceContext.currentComputeQueue.mean(x: x, along: axes, result: &result)
 }
 
 /// return result
@@ -90,7 +90,7 @@ public func mean<T>(_ x: T, alongAxes axes: Vector<IndexElement>? = nil) -> T
 {
     let extents = [Int](repeating: 1, count: x.rank)
     var result = x.createDense(with: extents)
-    _Queues.current.mean(x: x, along: axes, result: &result)
+    DeviceContext.currentComputeQueue.mean(x: x, along: axes, result: &result)
     return result
 }
 
@@ -157,7 +157,7 @@ public func sum<T>(_ x: T, alongAxes axes: Vector<IndexElement>? = nil,
                    result: inout T)
     where T: TensorView, T.Element: Numeric
 {
-    _Queues.current.sum(x: x, along: axes, result: &result)
+    DeviceContext.currentComputeQueue.sum(x: x, along: axes, result: &result)
 }
 
 /// return result
@@ -171,7 +171,7 @@ public func sum<T>(_ x: T, alongAxes axes: Vector<IndexElement>? = nil) -> T
 {
     let extents = [Int](repeating: 1, count: x.rank)
     var result = x.createDense(with: extents)
-    _Queues.current.sum(x: x, along: axes, result: &result)
+    DeviceContext.currentComputeQueue.sum(x: x, along: axes, result: &result)
     return result
 }
 
@@ -231,9 +231,9 @@ public func variance<T>(_ x: T, alongAxes axes: Vector<IndexElement>? = nil,
 {
 //    if let axes = axes {
 //    } else {
-    _Queues.current.mean(x: x, along: axes, result: &mean)
+    DeviceContext.currentComputeQueue.mean(x: x, along: axes, result: &mean)
     let meanVec = T(with: x.extents, repeating: mean)
-    _Queues.current.mean(x: squaredDifference(x, meanVec),
+    DeviceContext.currentComputeQueue.mean(x: squaredDifference(x, meanVec),
                           along: axes, result: &result)
 //    }
 }
@@ -312,7 +312,7 @@ public func standardDeviation<T>(_ x: T,
 {
     var _variance = x.createDense(with: [1])
     SwiftRT.variance(x, alongAxes: axes, mean: &mean, result: &_variance)
-    _Queues.current.sqrt(x: _variance, result: &result)
+    DeviceContext.currentComputeQueue.sqrt(x: _variance, result: &result)
 }
 
 /// return result

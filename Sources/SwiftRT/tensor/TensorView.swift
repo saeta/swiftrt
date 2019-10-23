@@ -403,7 +403,7 @@ public extension TensorView {
         -> UnsafeBufferPointer<Element>
     {
         // if no queue is specified then use the hostQueue
-        let deviceQueue = queue ?? _Queues.hostQueue
+        let deviceQueue = queue ?? DeviceContext.hostQueue
         if let lastError = deviceQueue.lastError { throw lastError }
 
         // get the queue, if we reference it directly as a dataArray member it
@@ -423,7 +423,7 @@ public extension TensorView {
             // if `queue` is nil then the deviceQueue is the hostQueue
             // and the caller wants to synchronize with the app thread
             if queue == nil {
-                assert(deviceQueue.device.memoryAddressing == .unified)
+                assert(deviceQueue.device.memory.isUnified)
                 try deviceQueue.waitUntilQueueIsComplete()
             }
 
@@ -451,7 +451,7 @@ public extension TensorView {
         -> UnsafeMutableBufferPointer<Element>
     {
         precondition(!tensorArray.isReadOnly, "the tensor is read only")
-        let deviceQueue = queue ?? _Queues.hostQueue
+        let deviceQueue = queue ?? DeviceContext.hostQueue
         if let lastError = deviceQueue.lastError { throw lastError }
 
         // get the queue, if we reference it as a dataArray member it
@@ -471,7 +471,7 @@ public extension TensorView {
             // if `queue` is nil then the deviceQueue is the hostQueue
             // and the caller wants to synchronize with the app thread
             if queue == nil {
-                assert(deviceQueue.device.memoryAddressing == .unified)
+                assert(deviceQueue.device.memory.isUnified)
                 try deviceQueue.waitUntilQueueIsComplete()
             }
 
@@ -542,7 +542,7 @@ public extension TensorView {
         -> Void) throws
     {
         assert(batchSize == nil || batchSize! <= extents[0])
-        let queue = _Queues.hostQueue
+        let queue = DeviceContext.hostQueue
         let errorDevice = queue.device
         var shared = try sharedView(using: queue)
         let group = DispatchGroup()
@@ -593,9 +593,9 @@ public extension TensorView {
     /// queue.
     mutating func hostMultiWriteBuffer() -> UnsafeMutableBufferPointer<Element>{
         assert(tensorArray.lastMutatingQueue != nil,
-               "readWrite(using: _Queues.hostQueue) must be called first")
+               "readWrite(using: DeviceContext.hostQueue) must be called first")
         let lastQueue = tensorArray.lastMutatingQueue!
-        assert(lastQueue.device.memoryAddressing == .unified)
+        assert(lastQueue.device.memory.isUnified)
         // get the queue, if we reference it as a dataArray member it
         // it adds a ref count which messes things up
         let queue = tensorArray.accessQueue

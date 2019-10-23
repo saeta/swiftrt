@@ -55,31 +55,14 @@ public protocol ComputePlatform: DeviceErrorHandling, ObjectTracking, Logger {
     var services: [String : ComputeService] { get }
     
     //--------------------------------------------------------------------------
-    /// createQueue will try to match the requested service name and
-    /// device id returning substitutions if needed to fulfill the request
-    ///
-    /// Parameters
-    /// - Parameter deviceId: (0, 1, 2, ...)
-    ///   If the specified id is greater than the number of available devices,
-    ///   then id % available will be used.
-    /// - Parameter serviceName: (cpu, cuda, tpu, ...)
-    ///   If no service name is specified, then the default is used.
-    /// - Parameter name: a text label assigned to the queue for logging
-    /// - Parameter isStatic: if `true` the object will not be reported
-    ///   as a memory leak
-    func createQueue(deviceId: Int,
-                     serviceName: String?,
-                     name: String,
-                     isStatic: Bool) throws -> DeviceQueue
-    
-    //--------------------------------------------------------------------------
-    /// requestDevices
-    /// - Parameter serviceName: the service to allocate the device from.
-    /// - Parameter deviceId: selected device id
-    /// - Returns: the requested device from the requested service
-    ///   substituting if needed based on `servicePriority`
-    ///   and `deviceIdPriority`
-    func requestDevice(serviceName: String, deviceId: Int) -> ComputeDevice?
+    /// requestDevice(serviceName:deviceId:
+    /// - Parameter serviceName: optional (cpu, cuda, tpu, ...)
+    /// - Parameter deviceId: selected device id (0, 1, 2, ...)
+    /// - Returns: the requested device from the requested service. If the
+    /// service or device is not available, then a substrituion will be made
+    /// based on Platform `servicePriority`and `deviceIdPriority`. The CPU
+    /// is always available.
+    func requestDevice(serviceName: String?, deviceId: Int) -> ComputeDevice
 }
 
 //==============================================================================
@@ -167,14 +150,12 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     var service: ComputeService! { get }
     /// the maximum amount of time allowed for an operation to complete
     var timeout: TimeInterval? { get set }
-    /// the type of memory addressing this device uses
-    var memoryAddressing: MemoryAddressing { get }
 
-    //    //-------------------------------------
-    //    /// a collection of device queues that can be used for computation
-    //    var computeQueues: [DeviceQueue] { get }
-    //    /// a collection of device queues that can be used for data transfer
-    //    var transferQueues: [DeviceQueue] { get }
+    //-------------------------------------
+    /// a collection of device queues that can be used for computation
+    var computeQueues: [DeviceQueue] { get }
+    /// a collection of device queues that can be used for data transfer
+    var transferQueues: [DeviceQueue] { get }
     
     //-------------------------------------
     // device resource functions
@@ -185,9 +166,6 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     /// creates a device array from a uma buffer.
     func createMutableReferenceArray(buffer: UnsafeMutableRawBufferPointer)
         -> DeviceArray
-    /// creates a named command queue for this device
-    /// - Parameter isStatic: if `true` the object will not be tracked
-    func createQueue(name: String, isStatic: Bool) throws -> DeviceQueue
 }
 
 
@@ -236,6 +214,11 @@ public struct MemoryAttributes: OptionSet, CustomStringConvertible {
 //==============================================================================
 /// DeviceMemoryProperties
 public struct MemoryProperties {
+    /// `true` if device memory is unified with host cpu
+    // TODO: this will need to be reexamined when Vulan is added, because
+    // some heaps may be host coherent and some not. For now the device
+    // is either a uma device or not
+    var isUnified: Bool
     /// collection of device heaps
     var heaps: [MemoryHeap]
 }

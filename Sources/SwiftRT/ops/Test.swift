@@ -18,8 +18,8 @@ public func simulateWork<T>(_ x: T, timePerElement: TimeInterval,
                             result: inout T)
     where T: TensorView
 {
-    _Queues.current.simulateWork(x: x, timePerElement: timePerElement,
-                                  result: &result)
+    DeviceContext.currentComputeQueue
+        .simulateWork(x: x, timePerElement: timePerElement, result: &result)
 }
 
 /// returns new view
@@ -56,5 +56,5 @@ public extension TensorView {
 /// - Parameter timePerElement: seconds per element to delay
 @inlinable @inline(__always)
 public func delayQueue(atLeast interval: TimeInterval) {
-    _Queues.current.delayQueue(atLeast: interval)
+    DeviceContext.currentComputeQueue.delayQueue(atLeast: interval)
 }

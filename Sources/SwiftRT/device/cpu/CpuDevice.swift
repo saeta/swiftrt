@@ -20,33 +20,37 @@ public class CpuDevice: LocalComputeDevice {
     //--------------------------------------------------------------------------
     // properties
     public private(set) var trackingId = 0
+    public private(set) var computeQueues = [DeviceQueue]()
+    public private(set) var transferQueues = [DeviceQueue]()
     public let deviceArrayReplicaKey = Platform.nextUniqueDeviceId
     public let id: Int
     public var logInfo: LogInfo
     public let name: String
     public weak var service: ComputeService!
-    private let queueId = AtomicCounter(value: -1)
     public var timeout: TimeInterval?
-    public let memoryAddressing: MemoryAddressing
     public var deviceErrorHandler: DeviceErrorHandler?
     public var limits: DeviceLimits
     public var memory: MemoryProperties
     public var _lastError: Error? = nil
     public var _errorMutex: Mutex = Mutex()
     
+    // configuration and defaults
+    public var configuration: [CudaPropertyKey: Any] = [
+        .queuesPerDevice: 2
+    ]
+    
     //--------------------------------------------------------------------------
 	// initializers
-	public init(service: ComputeService,
+	public init(service: CpuService,
                 deviceId: Int,
                 logInfo: LogInfo,
-                memoryAddressing: MemoryAddressing,
+                isUnified: Bool,
                 timeout: TimeInterval?) {
         self.name = "cpu:\(deviceId)"
-		self.logInfo = logInfo
+		self.logInfo = logInfo.flat("cpu:\(deviceId)")
 		self.id = deviceId
 		self.service = service
         self.timeout = timeout
-        self.memoryAddressing = memoryAddressing
         
         // TODO: determine meaningful values, not currently used
         self.limits = DeviceLimits(
@@ -58,7 +62,23 @@ public class CpuDevice: LocalComputeDevice {
         )
         
         // TODO:
-        self.memory = MemoryProperties(heaps: [MemoryHeap]())
+        self.memory = MemoryProperties(isUnified: isUnified,
+                                       heaps: [MemoryHeap]())
+
+        //---------------------------------
+        // create device queues
+        assert(service.configuration[.queuesPerDevice] is Int)
+        let queueCount = service.configuration[.queuesPerDevice] as! Int
+        var queues = [DeviceQueue]()
+        for id in 0..<queueCount {
+            let queueName = "queue:\(id)"
+            queues.append(CpuQueue(logInfo: logInfo.flat(queueName),
+                                   device: self, name: queueName,
+                                   id: Platform.nextUniqueQueueId,
+                                   isStatic: true))
+        }
+        computeQueues = queues
+        transferQueues = computeQueues
 
 		// devices are statically held by the Platform.service
         trackingId = ObjectTracker.global
@@ -91,14 +111,4 @@ public class CpuDevice: LocalComputeDevice {
     {
         return CpuDeviceArray(device: self, buffer: buffer)
     }
-
-    //--------------------------------------------------------------------------
-	// createQueue
-	public func createQueue(name queueName: String,
-                             isStatic: Bool) -> DeviceQueue {
-        return CpuQueue(logInfo: logInfo.flat(queueName),
-                         device: self, name: queueName, isStatic: isStatic)
-	}
 }
-
-

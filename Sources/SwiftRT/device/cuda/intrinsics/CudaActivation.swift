@@ -56,7 +56,7 @@ public struct CudaActivation<T> where
     // inferring
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationForward
     public func inferring(y: inout T, from x: T) throws {
-        let deviceQueue = _Queues.current as! CudaQueue
+        let deviceQueue = DeviceContext.currentComputeQueue as! CudaQueue
         
         try cudaCheck(status: cudnnActivationForward(
             deviceQueue.cudnn.handle,
@@ -77,7 +77,7 @@ public struct CudaActivation<T> where
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationBackward
     public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
-        let deviceQueue = _Queues.current as! CudaQueue
+        let deviceQueue = DeviceContext.currentComputeQueue as! CudaQueue
 
         try cudaCheck(status: cudnnActivationBackward(
             deviceQueue.cudnn.handle,

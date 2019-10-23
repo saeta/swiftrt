@@ -20,7 +20,7 @@ public final class CpuQueue: LocalDeviceQueue {
 	public private(set) var trackingId = 0
     public var defaultQueueEventOptions = QueueEventOptions()
 	public let device: ComputeDevice
-    public let id = Platform.nextUniqueQueueId
+    public let id: Int
 	public let name: String
     public var logInfo: LogInfo
     public var timeout: TimeInterval?
@@ -37,7 +37,7 @@ public final class CpuQueue: LocalDeviceQueue {
     //--------------------------------------------------------------------------
     // initializers
     public init(logInfo: LogInfo, device: ComputeDevice,
-                name: String, isStatic: Bool)
+                name: String, id: Int, isStatic: Bool)
     {
         // create serial command queue
         commandQueue = DispatchQueue(label: "\(name).commandQueue")
@@ -45,6 +45,7 @@ public final class CpuQueue: LocalDeviceQueue {
         // create a completion event
         self.logInfo = logInfo
         self.device = device
+        self.id = id
         self.name = name
         self.creatorThread = Thread.current
         let path = logInfo.namePath

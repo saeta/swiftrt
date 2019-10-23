@@ -20,38 +20,39 @@ public class CudaDevice : LocalComputeDevice {
     //--------------------------------------------------------------------------
     // properties
     public private(set) var trackingId = 0
-    public private (set) weak var service: ComputeService!
+    public private(set) weak var service: ComputeService!
+    public private(set) var computeQueues = [DeviceQueue]()
+    public private(set) var transferQueues = [DeviceQueue]()
     public let attributes: [String : String]
-    public var deviceArrayReplicaKey = Platform.nextUniqueDeviceId
+    public let deviceArrayReplicaKey = Platform.nextUniqueDeviceId
     public let id: Int
     public var logInfo: LogInfo
     public var maxThreadsPerBlock: Int { return Int(props.maxThreadsPerBlock) }
     public let name: String
-    private let queueId = AtomicCounter(value: -1)
     public var timeout: TimeInterval?
     public var memory: MemoryProperties
     public var limits: DeviceLimits
-    public let memoryAddressing: MemoryAddressing
     public var utilization: Float = 0
     public var deviceErrorHandler: DeviceErrorHandler?
     public var _lastError: Error? = nil
     public var _errorMutex: Mutex = Mutex()
-
+    
     private let props: cudaDeviceProp
 
     //--------------------------------------------------------------------------
 	// initializers
-    public init(service: CudaComputeService,
+    public init(service: CudaService,
                 deviceId: Int,
                 logInfo: LogInfo,
-                memoryAddressing: MemoryAddressing,
-                timeout: TimeInterval?) throws {
-        self.logInfo = logInfo
+                isUnified: Bool,
+                timeout: TimeInterval?) throws
+    {
+        self.logInfo = logInfo.flat("gpu:\(deviceId)")
         self.id = deviceId
         self.service = service
         self.timeout = timeout
-        self.memoryAddressing = memoryAddressing
 
+        //---------------------------------
         // get device properties
         var tempProps = cudaDeviceProp()
         try cudaCheck(status: cudaGetDeviceProperties(&tempProps, 0))
@@ -70,7 +71,6 @@ public class CudaDevice : LocalComputeDevice {
             "compute capability" : "\(props.major).\(props.minor)",
             "global memory"      : "\(props.totalGlobalMem / (1024 * 1024)) MB",
             "multiprocessors"    : "\(props.multiProcessorCount)",
-            "unified addressing" : "\(memoryAddressing == .unified ? "yes":"no")"
         ]
         
         // TODO: determine meaningful values, not currently used
@@ -83,8 +83,24 @@ public class CudaDevice : LocalComputeDevice {
         )
 
         // TODO:
-        self.memory = MemoryProperties(heaps: [MemoryHeap]())
+        self.memory = MemoryProperties(isUnified: false,
+                                       heaps: [MemoryHeap]())
 
+        //---------------------------------
+        // create device queues
+        assert(service.configuration[.queuesPerDevice] is Int)
+        let queueCount = service.configuration[.queuesPerDevice] as! Int
+        var queues = [DeviceQueue]()
+        for id in 0..<queueCount {
+            let queueName = "queue:\(id)"
+            try queues.append(CudaQueue(logInfo: logInfo.flat(queueName),
+                                 device: self, name: queueName,
+                                 id: id, isStatic: true))
+        }
+        computeQueues = queues
+        transferQueues = computeQueues
+        
+        //---------------------------------
         // devices are statically held by the Platform.service
         trackingId = ObjectTracker.global
                 .register(self, namePath: logNamePath, isStatic: true)
@@ -113,18 +129,6 @@ public class CudaDevice : LocalComputeDevice {
     public func createReferenceArray(buffer: UnsafeRawBufferPointer)
                     -> DeviceArray {
         return CudaDeviceArray(device: self, buffer: buffer)
-    }
-
-    //--------------------------------------------------------------------------
-	// createQueue
-    public func createQueue(name queueName: String, isStatic: Bool) throws
-                    -> DeviceQueue
-    {
-        let id = queueId.increment()
-        let queueName = "\(queueName):\(id)"
-        return try CudaQueue(logInfo: logInfo.flat(queueName),
-                              device: self, name: queueName,
-                              id: id, isStatic: isStatic)
     }
 
 	//--------------------------------------------------------------------------

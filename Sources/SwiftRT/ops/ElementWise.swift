@@ -14,7 +14,7 @@ import Foundation
 @inlinable @inline(__always)
 public func copy<T>(view: T, result: inout T) where T: TensorView
 {
-    _Queues.current.copy(view: view, result: &result)
+    DeviceContext.currentComputeQueue.copy(view: view, result: &result)
 }
 
 //==============================================================================
@@ -29,7 +29,7 @@ public func copy<T>(view: T, result: inout T) where T: TensorView
 public func abs<T>(_ x: T, result: inout T)
     where T: TensorView, T.Element: FloatingPoint
 {
-    _Queues.current.abs(x: x, result: &result)
+    DeviceContext.currentComputeQueue.abs(x: x, result: &result)
 }
 
 /// returns new view
@@ -69,7 +69,7 @@ public extension TensorView where Element: FloatingPoint {
 public func log<T>(_ x: T, result: inout T)
     where T: TensorView, T.Element: AnyFloatingPoint
 {
-    _Queues.current.log(x: x, result: &result)
+    DeviceContext.currentComputeQueue.log(x: x, result: &result)
 }
 
 /// returns new view
@@ -109,7 +109,7 @@ public extension TensorView where Element: AnyFloatingPoint {
 public func logSoftmax<T>(_ x: T, result: inout T)
     where T: TensorView, T.Element: AnyFloatingPoint
 {
-    _Queues.current.logSoftmax(x: x, result: &result)
+    DeviceContext.currentComputeQueue.logSoftmax(x: x, result: &result)
 }
 
 /// returns new view
@@ -151,7 +151,7 @@ public extension TensorView where Element: AnyFloatingPoint {
 public func pow<T>(_ x: T, _ y: T, result: inout T)
     where T: TensorView, T.Element: AnyNumeric
 {
-    _Queues.current.pow(x: x, y: y, result: &result)
+    DeviceContext.currentComputeQueue.pow(x: x, y: y, result: &result)
 }
 
 /// returns new view
@@ -202,13 +202,13 @@ public extension TensorView where Element: AnyNumeric {
 public func fill<T>(_ result: inout T, with value: T.Element) where
     T: TensorView
 {
-    _Queues.current.fill(&result, with: value)
+    DeviceContext.currentComputeQueue.fill(&result, with: value)
 }
 
 public extension TensorView {
     func filled(with value: Element) -> Self {
         var result = createDense()
-        _Queues.current.fill(&result, with: value)
+        DeviceContext.currentComputeQueue.fill(&result, with: value)
         return result
     }
 }
@@ -219,13 +219,13 @@ public extension TensorView {
 public func fillWithIndex<T>(_ result: inout T, startAt index: Int = 0) where
     T: TensorView, T.Element: AnyNumeric
 {
-    _Queues.current.fillWithIndex(&result, startAt: index)
+    DeviceContext.currentComputeQueue.fillWithIndex(&result, startAt: index)
 }
 
 public extension TensorView where Element: AnyNumeric {
     func filledWithIndex(startAt index: Int = 0) -> Self {
         var result = createDense()
-        _Queues.current.fillWithIndex(&result, startAt: index)
+        DeviceContext.currentComputeQueue.fillWithIndex(&result, startAt: index)
         return result
     }
 }
@@ -236,7 +236,7 @@ public extension TensorView where Element: AnyNumeric {
 public func equal<T>(lhs: T, rhs: T, result: inout T.BoolView) where
     T: TensorView, T.Element: Equatable
 {
-    _Queues.current.equal(lhs: lhs, rhs: rhs, result: &result)
+    DeviceContext.currentComputeQueue.equal(lhs: lhs, rhs: rhs, result: &result)
 }
 
 public extension TensorView where Element: Equatable
@@ -266,7 +266,7 @@ public extension TensorView where Element: Equatable
 public func square<T>(_ x: T, result: inout T)
     where T: TensorView, T.Element: FloatingPoint
 {
-    _Queues.current.square(x: x, result: &result)
+    DeviceContext.currentComputeQueue.square(x: x, result: &result)
 }
 
 /// returns new view
@@ -307,7 +307,8 @@ public extension TensorView where Element: FloatingPoint {
 public func squaredDifference<T>(_ lhs: T, _ rhs: T, result: inout T)
     where T: TensorView, T.Element: FloatingPoint
 {
-    _Queues.current.squaredDifference(lhs: lhs, rhs: rhs, result: &result)
+    DeviceContext.currentComputeQueue
+        .squaredDifference(lhs: lhs, rhs: rhs, result: &result)
 }
 
 /// returns new view
@@ -335,7 +336,7 @@ public func squaredDifference<T>(_ lhs: T, _ rhs: T) -> T
 public func sqrt<T>(_ x: T, result: inout T)
     where T: TensorView, T.Element: FloatingPoint
 {
-    _Queues.current.sqrt(x: x, result: &result)
+    DeviceContext.currentComputeQueue.sqrt(x: x, result: &result)
 }
 
 /// returns new view

@@ -211,17 +211,15 @@ class test_Syntax: XCTestCase {
             Platform.log.level = .diagnostic
             Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
             
-            let queue1 = try Platform.local
-                    .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
-            let queue2 = try Platform.local
-                    .createQueue(deviceId: 2, serviceName: "cpuUnitTest")
+            let device1 = Platform.testDiscreetCpu1
+            let device2 = Platform.testDiscreetCpu2
 
-            let volume = using(queue1) {
+            let volume = using(device1) {
                 Volume<Int32>((3, 4, 5)).filledWithIndex()
             }
             let view = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
-            
-            let viewSum = try using(queue2) {
+
+            let viewSum = try using(device2) {
                 try sum(view).asValue()
             }
             XCTAssert(viewSum == 312)
@@ -273,19 +271,16 @@ class test_Syntax: XCTestCase {
         do {
             Platform.log.level = .diagnostic
             Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
-            
-            let queue1 = try Platform.local
-                .createQueue(deviceId: 1, serviceName: "cpuUnitTest")
-            
-            let queue2 = try Platform.local
-                .createQueue(deviceId: 2, serviceName: "cpuUnitTest")
-            
-            let volume = using(queue1) {
+
+            let device1 = Platform.testDiscreetCpu1
+            let device2 = Platform.testDiscreetCpu2
+
+            let volume = using(device1) {
                 Volume<Int32>((3, 4, 5)).filledWithIndex()
             }
             let subView = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
-            
-            let subViewSum = try using(queue2) {
+
+            let subViewSum = try using(device2) {
                 try sum(subView).asValue()
             }
             XCTAssert(subViewSum == 312)

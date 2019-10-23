@@ -21,11 +21,12 @@ public class VulkanDevice : LocalComputeDevice {
     // conformance properties
     public private(set) var trackingId = 0
     public private (set) weak var service: ComputeService!
+    public private(set) var computeQueues = [DeviceQueue]()
+    public private(set) var transferQueues = [DeviceQueue]()
     public var deviceArrayReplicaKey = Platform.nextUniqueDeviceId
     public let id: Int
     public var logInfo: LogInfo
     public let name: String
-    private let streamId = AtomicCounter(value: -1)
     public var timeout: TimeInterval?
     public let memoryAddressing: MemoryAddressing
     public var deviceErrorHandler: DeviceErrorHandler?
@@ -78,7 +79,7 @@ public class VulkanDevice : LocalComputeDevice {
                 }
             }
         }
-        self.memory = MemoryProperties(heaps: heaps)
+        self.memory = MemoryProperties(isUnified: false, heaps: heaps)
 
         // register device with the object tracker.
         // devices are statically held by the Platform.service

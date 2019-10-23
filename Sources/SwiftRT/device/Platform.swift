@@ -16,6 +16,72 @@
 import Foundation
 
 //==============================================================================
+// Platform
+/// The root object to select compute services and devices
+final public class Platform: LocalPlatform {
+    // properties
+    public var _defaultDevice: ComputeDevice?
+    public var deviceErrorHandler: DeviceErrorHandler?
+    public var _errorMutex: Mutex = Mutex()
+    public var _lastError: Error? = nil
+    public var deviceIdPriority: [Int] = [0]
+    public var id: Int = 0
+    public static let local = Platform()
+    public var serviceModuleDirectory = URL(fileURLWithPath: "TODO")
+    public var servicePriority = [cpuService, cudaService, vulkanService]
+    public lazy var services: [String : ComputeService] = {
+        loadServices()
+        return Platform._services!
+    }()
+    public static var _services: [String: ComputeService]?
+    public private(set) var trackingId = 0
+    public var logInfo: LogInfo
+    
+    /// a platform wide unique queue id obtained during initialization
+    private static var deviceIdCounter = AtomicCounter(value: -1)
+    public static var nextUniqueDeviceId: Int {
+        return Platform.deviceIdCounter.increment()
+    }
+    
+    /// a platform wide unique queue id obtained during initialization
+    private static var queueIdCounter = AtomicCounter(value: -1)
+    public static var nextUniqueQueueId: Int {
+        return Platform.queueIdCounter.increment()
+    }
+
+    //--------------------------------------------------------------------------
+    // these are to aid unit tests
+    public static var testDiscreetCpu1: ComputeDevice {
+        return (Platform.local.services[cpuService] as! CpuService).discreet1
+    }
+
+    public static var testDiscreetCpu2: ComputeDevice {
+        return (Platform.local.services[cpuService] as! CpuService).discreet2
+    }
+
+    //--------------------------------------------------------------------------
+    /// log
+    /// the caller can specify a root log which will be inherited by the
+    /// device queue hierarchy, but can be overridden at any point down
+    /// the tree
+    public var log: Log {
+        get { return logInfo.log }
+        set { logInfo.log = newValue }
+    }
+    
+    //--------------------------------------------------------------------------
+    // initializers
+    /// `init` is private because this is a singleton. Use the `local` static
+    /// member to access the shared instance.
+    private init() {
+        // create the log
+        logInfo = LogInfo(log: Log(isStatic: true), logLevel: .error,
+                          namePath: String(describing: Platform.self),
+                          nestingLevel: 0)
+    }
+}
+
+//==============================================================================
 /// LocalPlatform
 /// The default ComputePlatform implementation for a local host
 public protocol LocalPlatform : ComputePlatform {
@@ -59,19 +125,12 @@ public extension LocalPlatform {
         
         var loadedServices = [String: ComputeService]()
         do {
+            //-------------------------------------
             // add required cpu service
             let cpuService = try CpuService(platform: Platform.local,
                                             id: 0, logInfo: logInfo)
             loadedServices[cpuService.name] = cpuService
             
-            // add cpu unit test service
-            let cpuUnitTestService =
-                try CpuUnitTestComputeService(platform: Platform.local,
-                                              id: loadedServices.count,
-                                              logInfo: logInfo,
-                                              name: "cpuUnitTest")
-            loadedServices[cpuUnitTestService.name] = cpuUnitTestService
-
             //-------------------------------------
             // static inclusions
             #if VULKAN
@@ -171,44 +230,24 @@ public extension LocalPlatform {
     }
     
     //--------------------------------------------------------------------------
-    /// createQueue will try to match the requested service name and
-    /// device id returning substitutions if needed to fulfill the request
-    ///
-    /// Parameters
-    /// - Parameter deviceId: (0, 1, 2, ...)
-    ///   If the specified id is greater than the number of available devices,
-    ///   then id % available will be used.
-    /// - Parameter serviceName: (cpu, vulkan, cuda, ...)
-    ///   If no service name is specified, then the default is used.
-    /// - Parameter name: a text label assigned to the queue for logging
-    func createQueue(deviceId id: Int = 0,
-                     serviceName: String? = nil,
-                     name: String = "queue",
-                     isStatic: Bool = false) throws -> DeviceQueue {
-        
+    /// requestDevice
+    /// - Parameter serviceName: optional (cpu, cuda, tpu, ...)
+    /// - Parameter deviceId: selected device id (0, 1, 2, ...)
+    /// - Returns: the requested device from the requested service. If the
+    /// service or device is not available, then a substrituion will be made
+    /// based on Platform `servicePriority`and `deviceIdPriority`. The CPU
+    /// is always available.
+    func requestDevice(serviceName: String? = nil,
+                       deviceId: Int = 0) -> ComputeDevice
+    {
         let serviceName = serviceName ?? defaultDevice.service.name
-        if let device = requestDevice(serviceName: serviceName, deviceId: id) {
-            return try device.createQueue(name: name, isStatic: isStatic)
+        if let service = services[serviceName] {
+            return service.devices[deviceId % service.devices.count]
         } else {
             writeLog("CPU substituted. Service `\(serviceName)` not found.",
                 level: .warning)
-            let device = requestDevice(serviceName: "cpu")!
-            return try device.createQueue(name: name, isStatic: isStatic)
+            return requestDevice(serviceName: cpuService)
         }
-    }
-    
-    //--------------------------------------------------------------------------
-    /// requestDevices
-    /// - Parameter deviceId: selected device id
-    /// - Parameter serviceName: an optional service name to allocate
-    ///   the device from.
-    /// - Returns: the requested device from the requested service
-    ///   substituting if needed based on `servicePriority`
-    ///   and `deviceIdPriority`
-    func requestDevice(serviceName: String,
-                       deviceId: Int = 0) -> ComputeDevice? {
-        guard let service = services[serviceName] else { return nil }
-        return service.devices[deviceId % service.devices.count]
     }
     
     //--------------------------------------------------------------------------
@@ -224,58 +263,3 @@ public extension LocalPlatform {
     }
 }
 
-//==============================================================================
-// Platform
-/// The root object to select compute services and devices
-final public class Platform: LocalPlatform {
-    // properties
-    public var _defaultDevice: ComputeDevice?
-    public var deviceErrorHandler: DeviceErrorHandler?
-    public var _errorMutex: Mutex = Mutex()
-    public var _lastError: Error? = nil
-    public var deviceIdPriority: [Int] = [0]
-    public var id: Int = 0
-    public static let local = Platform()
-    public var serviceModuleDirectory = URL(fileURLWithPath: "TODO")
-    public var servicePriority = [cpuService, cudaService, vulkanService]
-    public lazy var services: [String : ComputeService] = {
-        loadServices()
-        return Platform._services!
-    }()
-    public static var _services: [String: ComputeService]?
-    public private(set) var trackingId = 0
-    public var logInfo: LogInfo
-
-    /// a platform wide unique queue id obtained during initialization
-    private static var deviceIdCounter = AtomicCounter(value: -1)
-    public static var nextUniqueDeviceId: Int {
-        return Platform.deviceIdCounter.increment()
-    }
-
-    /// a platform wide unique queue id obtained during initialization
-    private static var queueIdCounter = AtomicCounter(value: -1)
-    public static var nextUniqueQueueId: Int {
-        return Platform.queueIdCounter.increment()
-    }
-
-    //--------------------------------------------------------------------------
-    /// log
-    /// the caller can specify a root log which will be inherited by the
-    /// device queue hierarchy, but can be overridden at any point down
-    /// the tree
-    public var log: Log {
-        get { return logInfo.log }
-        set { logInfo.log = newValue }
-    }
-    
-    //--------------------------------------------------------------------------
-    // initializers
-    /// `init` is private because this is a singleton. Use the `local` static
-    /// member to access the shared instance.
-    private init() {
-        // create the log
-        logInfo = LogInfo(log: Log(isStatic: true), logLevel: .error,
-                          namePath: String(describing: Platform.self),
-                          nestingLevel: 0)
-    }
-}

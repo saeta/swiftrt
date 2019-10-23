@@ -89,7 +89,7 @@ public extension DeviceQueue {
 }
 
 let queueThreadViolationMessage =
-"a queue can only be accessed by the thread that created it"
+    "a queue can only be accessed by the thread that created it"
 
 //==============================================================================
 /// LocalDeviceQueue

@@ -107,7 +107,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         // this should never fail since it is copying from host buffer to
         // host buffer. It is synchronous, so we don't need to create or
         // record a completion event.
-        let buffer = try! readWrite(using: _Queues.hostQueue)
+        let buffer = try! readWrite(using: DeviceContext.hostQueue)
         for i in zip(buffer.indices, elements.indices) {
             buffer[i.0] = elements[i.1]
         }
@@ -123,7 +123,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         isReadOnly = true
         
         // create the replica device array
-        let queue = _Queues.current
+        let queue = DeviceContext.currentComputeQueue
         let key = queue.device.deviceArrayReplicaKey
         let bytes = UnsafeRawBufferPointer(buffer)
         let array = queue.device.createReferenceArray(buffer: bytes)
@@ -148,7 +148,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         isReadOnly = false
         
         // create the replica device array
-        let queue = _Queues.current
+        let queue = DeviceContext.currentComputeQueue
         let key = queue.device.deviceArrayReplicaKey
         let bytes = UnsafeMutableRawBufferPointer(buffer)
         let array = queue.device.createMutableReferenceArray(buffer: bytes)
@@ -275,9 +275,9 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
     {
         lastAccessCopiedBuffer = true
         
-        if master.device.memoryAddressing == .unified {
+        if master.device.memory.isUnified {
             // copy host to discreet memory device
-            if other.device.memoryAddressing == .discreet {
+            if !other.device.memory.isUnified {
                 // get the master uma buffer
                 let buffer = UnsafeRawBufferPointer(master.buffer)
                 try queue.copyAsync(to: other, from: buffer)
@@ -290,7 +290,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
                     categories: .dataCopy)
             }
             // otherwise they are both unified, so do nothing
-        } else if other.device.memoryAddressing == .unified {
+        } else if other.device.memory.isUnified {
             // device to host
             try queue.copyAsync(to: other.buffer, from: master)
             
@@ -303,7 +303,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         } else {
             // both are discreet and not in the same service, so
             // transfer to host memory as an intermediate step
-            let host = try getArray(for: _Queues.hostQueue)
+            let host = try getArray(for: DeviceContext.hostQueue)
             try queue.copyAsync(to: host.buffer, from: master)
             
             diagnostic("\(copyString) \(name)(\(trackingId)) " +
@@ -331,8 +331,8 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
                                  from master: DeviceArray,
                                  using queue: DeviceQueue) throws
     {
-        // only copy if the devices have discreet memory
-        guard master.device.memoryAddressing == .discreet else { return }
+        // only copy if the devices do not have unified memory
+        guard !master.device.memory.isUnified else { return }
         lastAccessCopiedBuffer = true
         
         // async copy and record completion event
@@ -380,7 +380,7 @@ extension TensorArray: Codable where Element: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
-        let buffer = try readOnly(using: _Queues.hostQueue)
+        let buffer = try readOnly(using: DeviceContext.hostQueue)
         try container.encode(ContiguousArray(buffer), forKey: .data)
     }
     

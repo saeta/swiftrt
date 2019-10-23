@@ -17,8 +17,8 @@ import Foundation
 import CCuda
 
 //==============================================================================
-// CudaComputeService
-public final class CudaComputeService: LocalComputeService {
+// CudaService
+public final class CudaService: LocalComputeService {
     // properties
     public private(set) weak var platform: ComputePlatform!
     public private(set) var trackingId = 0
@@ -29,6 +29,11 @@ public final class CudaComputeService: LocalComputeService {
     public let id: Int
     public var logInfo: LogInfo
     public let name: String
+    
+    // configuration and defaults
+    public var configuration: [CudaPropertyKey: Any] = [
+        .queuesPerDevice: 2
+    ]
 
     //--------------------------------------------------------------------------
     // timeout
@@ -50,40 +55,49 @@ public final class CudaComputeService: LocalComputeService {
         self.id = id
         self.name = name ?? "cuda"
         self.logInfo = logInfo
-
+        
         // this is held statically by the Platform
         trackingId = ObjectTracker.global.register(self, isStatic: true)
-
+        
         // create devices
         var deviceCount: CInt = 0
         do {
             try cudaCheck(status: cudaGetDeviceCount(&deviceCount))
         } catch {
             writeLog("cudaGetDeviceCount failed. " +
-                             "The Cuda driver may be in an unstable state",
+                "The Cuda driver may be in an unstable state",
                      level: .error)
             throw error
         }
-
+        
         guard deviceCount > 0 else {
             writeLog("There are no '\(self.name)' devices installed",
                 level: .warning)
             throw ServiceError.serviceIsUnavailable
         }
-
+        
         // add device object for each id reported
         for i in 0..<Int(deviceCount) {
-            let device = try CudaDevice(service: self, deviceId: i,
-                                        logInfo: logInfo.flat("gpu:\(i)"),
-                                        memoryAddressing: .discreet,
+            let device = try CudaDevice(service: self,
+                                        deviceId: i,
+                                        logInfo: logInfo,
+                                        isUnified: false,
                                         timeout: timeout)
             devices.append(device)
         }
     }
-
+    
     deinit {
         ObjectTracker.global.remove(trackingId: trackingId)
     }
+}
+
+
+//==============================================================================
+/// a set of predefined property names to simplify configuring
+/// the service properties
+public enum CudaPropertyKey: Int {
+    case queuesPerDevice
 }
 
 //==============================================================================

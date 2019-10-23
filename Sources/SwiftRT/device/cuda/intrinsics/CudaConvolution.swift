@@ -132,7 +132,7 @@ public struct CudaConvolution<T>: ConvolutionFunction, Logging where
         // TODO: change this when devices have fixed collections of queues
         // initialization can create workspaces on the devices
         // associated with the queues, so we hold on to them
-        let defaultQueue = _Queues.current as! CudaQueue
+        let defaultQueue = DeviceContext.currentComputeQueue as! CudaQueue
         self.dataQueue = defaultQueue
         self.filterBiasBackQueue = defaultQueue
         

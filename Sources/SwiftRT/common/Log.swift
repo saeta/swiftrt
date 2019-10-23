@@ -152,10 +152,10 @@ public extension _Logging {
 public protocol Logging : _Logging { }
 
 public extension Logging {
-    var log: Log { return _Queues.local.logInfo.log }
-    var logLevel: LogLevel { return _Queues.local.logInfo.logLevel }
-    var logNamePath: String { return _Queues.local.logInfo.namePath }
-    var logNestingLevel: Int { return _Queues.local.logInfo.nestingLevel }
+    var log: Log { return DeviceContext.local.logInfo.log }
+    var logLevel: LogLevel { return DeviceContext.local.logInfo.logLevel }
+    var logNamePath: String { return DeviceContext.local.logInfo.namePath }
+    var logNestingLevel: Int { return DeviceContext.local.logInfo.nestingLevel }
 }
 
 //==============================================================================

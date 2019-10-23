@@ -18,9 +18,10 @@ public func approximatelyEqual<T>(_ lhs: T, _ rhs: T,
                                   tolerance: Double = 0.00001) where
     T: TensorView, T.Element: AnyFloatingPoint
 {
-    _Queues.current.approximatelyEqual(lhs: lhs, rhs: rhs,
-                                        tolerance: T.Element(any: tolerance),
-                                        result: &result)
+    DeviceContext.currentComputeQueue
+        .approximatelyEqual(lhs: lhs, rhs: rhs,
+                            tolerance: T.Element(any: tolerance),
+                            result: &result)
 }
 
 /// returns new view
