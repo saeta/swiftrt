@@ -282,3 +282,14 @@ public final class VulkanService: LocalComputeService {
         }
     }
 }
+
+//==============================================================================
+/// a set of predefined property names to simplify configuring
+/// the service properties
+public enum VulkanPropertyKey: Int {
+    case applicationName
+    case applicationVersion
+    case engineName
+    case engineVersion
+    case apiVersion
+}

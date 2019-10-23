@@ -120,6 +120,19 @@ public enum ServiceError : Error {
 }
 
 //==============================================================================
+/// a set of predefined property names to simplify configuring
+/// the service properties
+public let cpuService = "cpu"
+public let cudaService = "cuda"
+public let vulkanService = "vulkan"
+
+//==============================================================================
+public enum MemoryAddressing { case unified, discreet }
+
+//==============================================================================
+public enum EvaluationMode { case inference, training }
+
+//==============================================================================
 /// LocalComputeService
 public protocol LocalComputeService: ComputeService { }
 
