@@ -82,8 +82,8 @@ class test_Async: XCTestCase {
         do {
             Platform.log.level = .diagnostic
 
-            let m1 = Matrix<Int32>((2, 5), name: "m1", any: 0..<10)
-            let m2 = Matrix<Int32>((2, 5), name: "m2", any: 0..<10)
+            let m1 = Matrix<Int32>((2, 5), name: "m1", with: 0..<10)
+            let m2 = Matrix<Int32>((2, 5), name: "m2", with: 0..<10)
             let result = m1 + m2
             let values = try result.array()
             
@@ -109,8 +109,8 @@ class test_Async: XCTestCase {
 
             let device1 = Platform.testDiscreetCpu1
             
-            let m1 = Matrix<Int32>((2, 5), name: "m1", any: 0..<10)
-            let m2 = Matrix<Int32>((2, 5), name: "m2", any: 0..<10)
+            let m1 = Matrix<Int32>((2, 5), name: "m1", with: 0..<10)
+            let m2 = Matrix<Int32>((2, 5), name: "m2", with: 0..<10)
 
             // perform on user provided discreet memory queue
             let result = using(device1) { m1 + m2 }
@@ -138,9 +138,9 @@ class test_Async: XCTestCase {
             let device1 = Platform.testDiscreetCpu1
             let device2 = Platform.testDiscreetCpu2
 
-            let m1 = Matrix<Int32>((2, 3), name: "m1", any: 0..<6)
-            let m2 = Matrix<Int32>((2, 3), name: "m2", any: 0..<6)
-            let m3 = Matrix<Int32>((2, 3), name: "m3", any: 0..<6)
+            let m1 = Matrix<Int32>((2, 3), name: "m1", with: 0..<6)
+            let m2 = Matrix<Int32>((2, 3), name: "m2", with: 0..<6)
+            let m3 = Matrix<Int32>((2, 3), name: "m3", with: 0..<6)
 
             // sum the values with a delay on device 1
             let sum_m1m2: Matrix<Int32> = using(device1) {

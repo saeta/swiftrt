@@ -206,7 +206,7 @@ public extension VectorView {
 
     //-------------------------------------
     /// with convertible collection
-    init<C>(name: String? = nil, any: C) where
+    init<C>(name: String? = nil, with any: C) where
         C: Collection, C.Element: AnyConvertable, Element: AnyConvertable
     {
         self.init(name: name, elements: any.lazy.map { Element(any: $0) })
@@ -349,7 +349,7 @@ public extension MatrixView {
     //-------------------------------------
     /// with convertible collection
     init<C>(_ extents: MatrixExtents, name: String? = nil,
-            layout: MatrixLayout = .rowMajor, any: C) where
+            layout: MatrixLayout = .rowMajor, with any: C) where
         C: Collection, C.Element: AnyConvertable, Element: AnyConvertable
     {
         self.init(extents, name: name, layout: layout,
@@ -482,7 +482,7 @@ public extension VolumeView {
 
     //-------------------------------------
     /// with convertible collection
-    init<C>(_ extents: VolumeExtents, name: String? = nil, any: C) where
+    init<C>(_ extents: VolumeExtents, name: String? = nil, with any: C) where
         C: Collection, C.Element: AnyConvertable, Element: AnyConvertable
     {
         self.init(extents, name: name,
@@ -595,7 +595,7 @@ public extension NDTensorView {
 public extension NDTensorView {
     //-------------------------------------
     /// with convertible collection
-    init<C>(_ extents: [Int], name: String? = nil, any: C) where
+    init<C>(_ extents: [Int], name: String? = nil, with any: C) where
         C: Collection, C.Element: AnyConvertable, Element: AnyConvertable
     {
         self.init(extents, name: name,
@@ -735,7 +735,7 @@ public extension NCHWTensorView {
     
     //-------------------------------------
     /// with convertible collection
-    init<C>(_ extents: NCHWExtents, name: String? = nil, any: C) where
+    init<C>(_ extents: NCHWExtents, name: String? = nil, with any: C) where
         C: Collection, C.Element: AnyConvertable, Element: AnyConvertable
     {
         self.init(extents, name: name,
@@ -876,7 +876,7 @@ public extension NHWCTensorView {
     
     //-------------------------------------
     /// with convertible collection
-    init<C>(_ extents: NHWCExtents, name: String? = nil, any: C) where
+    init<C>(_ extents: NHWCExtents, name: String? = nil, with any: C) where
         C: Collection, C.Element: AnyConvertable, Element: AnyConvertable
     {
         self.init(extents, name: name,

@@ -40,7 +40,7 @@ class test_DataMigration: XCTestCase {
 //            Platform.log.level = .diagnostic
 //            Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
             
-            let matrix = Matrix<Float>((3, 2), name: "matrix", any: 0..<6)
+            let matrix = Matrix<Float>((3, 2), name: "matrix", with: 0..<6)
             let index = (1, 1)
             
             for i in 0..<500 {
@@ -66,7 +66,7 @@ class test_DataMigration: XCTestCase {
             Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
 
             // create a Matrix and give it an optional name for logging
-            var m0 = Matrix<Float>((3, 4), name: "weights", any: 0..<12)
+            var m0 = Matrix<Float>((3, 4), name: "weights", with: 0..<12)
             
             let _ = try m0.readWrite()
             XCTAssert(!m0.lastAccessMutatedView)
@@ -126,7 +126,7 @@ class test_DataMigration: XCTestCase {
             let queue2 = Platform.testDiscreetCpu2.computeQueues[0]
 
             // create a tensor and validate migration
-            var view = Volume<Float>((2, 3, 4), any: 0..<24)
+            var view = Volume<Float>((2, 3, 4), with: 0..<24)
             
             _ = try view.readOnly()
             XCTAssert(!view.tensorArray.lastAccessCopiedBuffer)

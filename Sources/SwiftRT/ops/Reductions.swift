@@ -32,7 +32,7 @@ public extension TensorView where Element == Bool {
     func all(alongAxes: Int...) -> Self {
         // turn into a vector
         let axes = Vector<IndexElement>(
-            any: shape.makePositive(indices: alongAxes))
+            with: shape.makePositive(indices: alongAxes))
         var result = createDense()
         SwiftRT.all(self, alongAxes: axes, result: &result)
         return result
@@ -53,7 +53,7 @@ public extension TensorView where Element == Bool {
     @inlinable @inline(__always)
     func all(squeezing: Int...) -> NDTensor<Element> {
         let axes = shape.makePositive(indices: squeezing)
-        let axesVec = Vector<IndexElement>(any: axes)
+        let axesVec = Vector<IndexElement>(with: axes)
         var result = createDense()
         SwiftRT.all(self, alongAxes: axesVec, result: &result)
         return result.squeezed(axes: axes)
@@ -110,7 +110,7 @@ public extension TensorView where Element: BinaryFloatingPoint {
     func mean(alongAxes: [Int]) -> Self {
         // turn into a vector
         let axes = Vector<IndexElement>(
-            any: shape.makePositive(indices: alongAxes))
+            with: shape.makePositive(indices: alongAxes))
         return mean(alongAxes: axes)
     }
 
@@ -134,7 +134,7 @@ public extension TensorView where Element: BinaryFloatingPoint {
     @inlinable @inline(__always)
     func mean(squeezingAxes: Int...) -> NDTensor<Element> {
         let axes = shape.makePositive(indices: squeezingAxes)
-        let axesVec = Vector<IndexElement>(any: axes)
+        let axesVec = Vector<IndexElement>(with: axes)
         var result = createDense()
         SwiftRT.mean(self, alongAxes: axesVec, result: &result)
         return result.squeezed(axes: axes)
@@ -184,7 +184,7 @@ public extension TensorView where Element: Numeric {
     func sum(alongAxes: Int...) -> Self {
         // turn into a vector
         let axes = Vector<IndexElement>(
-            any: shape.makePositive(indices: alongAxes))
+            with: shape.makePositive(indices: alongAxes))
         var result = createDense()
         SwiftRT.sum(self, alongAxes: axes, result: &result)
         return result
@@ -205,7 +205,7 @@ public extension TensorView where Element: Numeric {
     @inlinable @inline(__always)
     func sum(squeezingAxes: Int...) -> NDTensor<Element> {
         let axes = shape.makePositive(indices: squeezingAxes)
-        let axesVec = Vector<IndexElement>(any: axes)
+        let axesVec = Vector<IndexElement>(with: axes)
         var result = createDense()
         SwiftRT.sum(self, alongAxes: axesVec, result: &result)
         return result.squeezed(axes: axes)
@@ -263,7 +263,7 @@ public extension TensorView where Element: BinaryFloatingPoint {
     func variance(alongAxes: [Int]) -> (mean: Self, variance: Self) {
         // turn into a vector
         let positiveAxes = shape.makePositive(indices: alongAxes)
-        let axes = Vector<IndexElement>(any: positiveAxes)
+        let axes = Vector<IndexElement>(with: positiveAxes)
         return SwiftRT.variance(self, alongAxes: axes)
     }
 
@@ -341,7 +341,7 @@ public extension TensorView where Element: BinaryFloatingPoint {
     func standardDeviation(alongAxes: [Int]) -> (mean: Self, variance: Self) {
         // turn into a vector
         let positiveAxes = shape.makePositive(indices: alongAxes)
-        let axes = Vector<IndexElement>(any: positiveAxes)
+        let axes = Vector<IndexElement>(with: positiveAxes)
         return SwiftRT.standardDeviation(self, alongAxes: axes)
     }
     

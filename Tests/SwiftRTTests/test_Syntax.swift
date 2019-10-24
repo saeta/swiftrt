@@ -45,7 +45,7 @@ class test_Syntax: XCTestCase {
         Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
         
         do {
-            let matrix = Matrix<Float>((3, 5), any: 0..<15)
+            let matrix = Matrix<Float>((3, 5), with: 0..<15)
             print(matrix.formatted((2,0)))
             let sum = try matrix.sum().asValue()
             XCTAssert(sum == 105.0)
@@ -72,7 +72,7 @@ class test_Syntax: XCTestCase {
         ]
         
         do {
-            let matrix = Matrix<Float>((3, 5), any: 0..<15)
+            let matrix = Matrix<Float>((3, 5), with: 0..<15)
             let sum = try matrix.sum().asValue()
             XCTAssert(sum == 105.0)
         } catch {
@@ -85,8 +85,8 @@ class test_Syntax: XCTestCase {
     func test_appThreadZipMapReduce() {
         do {
             // create two tensors and fill with indexes
-            let a = Matrix<Float>((2, 3), any: 0..<6)
-            let b = Matrix<Float>((2, 3), any: 6..<12)
+            let a = Matrix<Float>((2, 3), with: 0..<6)
+            let b = Matrix<Float>((2, 3), with: 6..<12)
             
             let absum = try zip(a, b).map { $0 + $1 }
             
@@ -106,7 +106,7 @@ class test_Syntax: XCTestCase {
     // from `rowVector` and repeats it through indexing
     func test_repeatVector() {
         do {
-            let rowVector = Matrix<Int32>((1, 5), any: 0..<5)
+            let rowVector = Matrix<Int32>((1, 5), with: 0..<5)
             let rmatrix = Matrix((5, 5), repeating: rowVector)
             
             print(rmatrix.formatted((2,0)))
@@ -120,7 +120,7 @@ class test_Syntax: XCTestCase {
             var values = try rmatrix.array()
             XCTAssert(values == rmatrixExp)
             
-            let colVector = Matrix<Int32>((5, 1), any: 0..<5)
+            let colVector = Matrix<Int32>((5, 1), with: 0..<5)
             let cmatrix = Matrix((5, 5), repeating: colVector)
             
             print(cmatrix.formatted((2,0)))
@@ -184,7 +184,7 @@ class test_Syntax: XCTestCase {
     /// zero copy transpose
     func test_transpose() {
         do {
-            let matrix = Matrix<Float>((2, 3), any: 0..<6)
+            let matrix = Matrix<Float>((2, 3), with: 0..<6)
             print(matrix.formatted((2,0)))
             
             let tmatrix = matrix.t
