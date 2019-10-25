@@ -110,9 +110,6 @@ public let cudaService = "cuda"
 public let vulkanService = "vulkan"
 
 //==============================================================================
-public enum MemoryAddressing { case unified, discreet }
-
-//==============================================================================
 public enum EvaluationMode { case inference, training }
 
 //==============================================================================
@@ -214,13 +211,19 @@ public struct MemoryAttributes: OptionSet, CustomStringConvertible {
 //==============================================================================
 /// DeviceMemoryProperties
 public struct MemoryProperties {
-    /// `true` if device memory is unified with host cpu
+    /// specifies if device memory is unified with host cpu or discreet
     // TODO: this will need to be reexamined when Vulan is added, because
     // some heaps may be host coherent and some not. For now the device
     // is either a uma device or not
-    var isUnified: Bool
+    var addressing: MemoryAddressing
     /// collection of device heaps
     var heaps: [MemoryHeap]
+}
+
+//==============================================================================
+/// MemoryAddressing
+public enum MemoryAddressing {
+    case unified, discreet
 }
 
 //==============================================================================

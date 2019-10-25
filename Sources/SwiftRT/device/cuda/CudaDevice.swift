@@ -83,7 +83,7 @@ public class CudaDevice : LocalComputeDevice {
         )
 
         // TODO:
-        self.memory = MemoryProperties(isUnified: false,
+        self.memory = MemoryProperties(addressing: .discreet,
                                        heaps: [MemoryHeap]())
 
         //---------------------------------

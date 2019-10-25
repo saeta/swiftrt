@@ -68,7 +68,7 @@ public class CpuService : LocalComputeService {
         devices.append(CpuDevice(service: self,
                                  deviceId: 0,
                                  logInfo: logInfo,
-                                 isUnified: true,
+                                 addressing: .unified,
                                  timeout: timeout))
         
         //-----------------------------------------
@@ -76,13 +76,13 @@ public class CpuService : LocalComputeService {
         devices.append(CpuDevice(service: self,
                                  deviceId: 1,
                                  logInfo: logInfo,
-                                 isUnified: false,
+                                 addressing: .discreet,
                                  timeout: timeout))
         
         devices.append(CpuDevice(service: self,
                                  deviceId: 2,
                                  logInfo: logInfo,
-                                 isUnified: false,
+                                 addressing: .discreet,
                                  timeout: timeout))
     }
     deinit { ObjectTracker.global.remove(trackingId: trackingId) }

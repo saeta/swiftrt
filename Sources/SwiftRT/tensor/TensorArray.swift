@@ -275,9 +275,9 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
     {
         lastAccessCopiedBuffer = true
         
-        if master.device.memory.isUnified {
+        if master.device.memory.addressing == .unified {
             // copy host to discreet memory device
-            if !other.device.memory.isUnified {
+            if other.device.memory.addressing == .discreet {
                 // get the master uma buffer
                 let buffer = UnsafeRawBufferPointer(master.buffer)
                 try queue.copyAsync(to: other, from: buffer)
@@ -290,7 +290,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
                     categories: .dataCopy)
             }
             // otherwise they are both unified, so do nothing
-        } else if other.device.memory.isUnified {
+        } else if other.device.memory.addressing == .unified {
             // device to host
             try queue.copyAsync(to: other.buffer, from: master)
             
@@ -332,7 +332,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
                                  using queue: DeviceQueue) throws
     {
         // only copy if the devices do not have unified memory
-        guard !master.device.memory.isUnified else { return }
+        guard master.device.memory.addressing == .discreet else { return }
         lastAccessCopiedBuffer = true
         
         // async copy and record completion event

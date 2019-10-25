@@ -79,7 +79,7 @@ public class VulkanDevice : LocalComputeDevice {
                 }
             }
         }
-        self.memory = MemoryProperties(isUnified: false, heaps: heaps)
+        self.memory = MemoryProperties(addressing: .discreet, heaps: heaps)
 
         // register device with the object tracker.
         // devices are statically held by the Platform.service

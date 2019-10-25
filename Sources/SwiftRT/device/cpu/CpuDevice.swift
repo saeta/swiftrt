@@ -44,7 +44,7 @@ public class CpuDevice: LocalComputeDevice {
 	public init(service: CpuService,
                 deviceId: Int,
                 logInfo: LogInfo,
-                isUnified: Bool,
+                addressing: MemoryAddressing,
                 timeout: TimeInterval?) {
         self.name = "cpu:\(deviceId)"
 		self.logInfo = logInfo.flat("cpu:\(deviceId)")
@@ -62,7 +62,7 @@ public class CpuDevice: LocalComputeDevice {
         )
         
         // TODO:
-        self.memory = MemoryProperties(isUnified: isUnified,
+        self.memory = MemoryProperties(addressing: addressing,
                                        heaps: [MemoryHeap]())
 
         //---------------------------------

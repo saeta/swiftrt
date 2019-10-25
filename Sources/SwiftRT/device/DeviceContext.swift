@@ -111,9 +111,9 @@ class DeviceContext {
     //--------------------------------------------------------------------------
     /// hostQueue
     public static var hostQueue: DeviceQueue {
-        return DeviceContext.current[0].memory.isUnified ?
+        return DeviceContext.current[0].memory.addressing == .unified ?
             DeviceContext.current[0].transferQueues[0] :
-            Platform.local.services[cpuService]!.devices[0].transferQueues[0]
+            Platform.cpu.transferQueues[0]
     }
 
     //--------------------------------------------------------------------------

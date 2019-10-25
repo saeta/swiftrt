@@ -103,17 +103,17 @@ class test_DataMigration: XCTestCase {
     //==========================================================================
     // test_tensorDataMigration
     //
-    // This test uses the default UMA cpu service queue, combined with the
-    // cpuUnitTest service, using 2 discreet memory device queues.
+    // This test uses the default UMA cpu queue, combined with the
+    // testDiscreetCpu1 and testDiscreetCpu2 device queues.
     // The purpose is to test data replication and synchronization in the
     // following combinations.
     //
     // `app` means app thread
     // `uma` means any device that shares memory with the app thread
-    // `discreet` is any device that does not share memory
-    // `same service` means moving data within (cuda gpu:0 -> cuda gpu:1)
+    // `discreet` is any device that does not share memory with the app thread
+    // `same service` means moving data within (cuda gpu:0 -> gpu:1)
     // `cross service` means moving data between services
-    //                 (cuda gpu:1 -> gcp tpu:0)
+    //                 (cuda gpu:1 -> cpu cpu:0)
     //
     func test_tensorDataMigration() {
         do {

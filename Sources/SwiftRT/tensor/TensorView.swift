@@ -423,7 +423,7 @@ public extension TensorView {
             // if `queue` is nil then the deviceQueue is the hostQueue
             // and the caller wants to synchronize with the app thread
             if queue == nil {
-                assert(deviceQueue.device.memory.isUnified)
+                assert(deviceQueue.device.memory.addressing == .unified)
                 try deviceQueue.waitUntilQueueIsComplete()
             }
 
@@ -471,7 +471,7 @@ public extension TensorView {
             // if `queue` is nil then the deviceQueue is the hostQueue
             // and the caller wants to synchronize with the app thread
             if queue == nil {
-                assert(deviceQueue.device.memory.isUnified)
+                assert(deviceQueue.device.memory.addressing == .unified)
                 try deviceQueue.waitUntilQueueIsComplete()
             }
 
@@ -597,7 +597,7 @@ public extension TensorView {
         assert(tensorArray.lastMutatingQueue != nil,
                "readWrite(using: DeviceContext.hostQueue) must be called first")
         let lastQueue = tensorArray.lastMutatingQueue!
-        assert(lastQueue.device.memory.isUnified)
+        assert(lastQueue.device.memory.addressing == .unified)
         // get the queue, if we reference it as a dataArray member it
         // it adds a ref count which messes things up
         let queue = tensorArray.accessQueue
