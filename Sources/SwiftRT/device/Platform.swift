@@ -49,15 +49,20 @@ final public class Platform: LocalPlatform {
         return Platform.queueIdCounter.increment()
     }
 
+    // shortcut to the cpu device
+    public static var cpu: ComputeDevice = {
+        return Platform.local.services[cpuService]!.devices[0]
+    }()
+
     //--------------------------------------------------------------------------
     // these are to aid unit tests
-    public static var testDiscreetCpu1: ComputeDevice {
+    public static var testDiscreetCpu1: ComputeDevice = {
         return (Platform.local.services[cpuService] as! CpuService).discreet1
-    }
+    }()
 
-    public static var testDiscreetCpu2: ComputeDevice {
+    public static var testDiscreetCpu2: ComputeDevice = {
         return (Platform.local.services[cpuService] as! CpuService).discreet2
-    }
+    }()
 
     //--------------------------------------------------------------------------
     /// log
