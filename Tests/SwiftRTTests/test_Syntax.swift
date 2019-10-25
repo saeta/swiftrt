@@ -278,12 +278,12 @@ class test_Syntax: XCTestCase {
             let volume = using(device1) {
                 Volume<Int32>((3, 4, 5)).filledWithIndex()
             }
-            let subView = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
+            let view = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
 
-            let subViewSum = try using(device2) {
-                try sum(subView).asValue()
+            let viewSum = try using(device2) {
+                try sum(view).asValue()
             }
-            XCTAssert(subViewSum == 312)
+            XCTAssert(viewSum == 312)
             
         } catch {
             XCTFail(String(describing: error))

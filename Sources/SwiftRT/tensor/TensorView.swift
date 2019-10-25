@@ -588,10 +588,12 @@ public extension TensorView {
     }
     
     //--------------------------------------------------------------------------
-    /// hostMultiWriteBuffer
+    /// getHostMultiWriteBuffer
     /// Returns a read write host memory buffer synced with the host app
     /// queue.
-    mutating func hostMultiWriteBuffer() -> UnsafeMutableBufferPointer<Element>{
+    mutating func getHostMultiWriteBuffer() ->
+        UnsafeMutableBufferPointer<Element>
+    {
         assert(tensorArray.lastMutatingQueue != nil,
                "readWrite(using: DeviceContext.hostQueue) must be called first")
         let lastQueue = tensorArray.lastMutatingQueue!

@@ -51,7 +51,7 @@ class test_Async: XCTestCase {
                     var itemView = batch.view(item: i)
                     
                     // get a writable buffer for the view
-                    let buffer = itemView.hostMultiWriteBuffer()
+                    let buffer = itemView.getHostMultiWriteBuffer()
                     
                     // at this point load image data from a file or database,
                     // decompress, type convert, whatever is needed
