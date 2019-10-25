@@ -343,9 +343,9 @@ public extension TensorView {
     }
     
     //--------------------------------------------------------------------------
-    /// asValue
+    /// asElement
     /// - Returns: the first element in the tensor as a value
-    func asValue() throws -> Element {
+    func asElement() throws -> Element {
         assert(shape.elementCount == 1)
         return try readOnly()[0]
     }

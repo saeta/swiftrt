@@ -47,7 +47,7 @@ class test_Syntax: XCTestCase {
         do {
             let matrix = Matrix<Float>((3, 5), with: 0..<15)
             print(matrix.formatted((2,0)))
-            let sum = try matrix.sum().asValue()
+            let sum = try matrix.sum().asElement()
             XCTAssert(sum == 105.0)
         } catch {
             XCTFail(String(describing: error))
@@ -73,7 +73,7 @@ class test_Syntax: XCTestCase {
         
         do {
             let matrix = Matrix<Float>((3, 5), with: 0..<15)
-            let sum = try matrix.sum().asValue()
+            let sum = try matrix.sum().asElement()
             XCTAssert(sum == 105.0)
         } catch {
             XCTFail(String(describing: error))
@@ -173,7 +173,7 @@ class test_Syntax: XCTestCase {
             let view = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
             print(view.formatted((2,0)))
             
-            let viewSum = try sum(view).asValue()
+            let viewSum = try sum(view).asElement()
             XCTAssert(viewSum == 312)
         } catch {
             XCTFail(String(describing: error))
@@ -220,7 +220,7 @@ class test_Syntax: XCTestCase {
             let view = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
 
             let viewSum = try using(device2) {
-                try sum(view).asValue()
+                try sum(view).asElement()
             }
             XCTAssert(viewSum == 312)
             
@@ -255,7 +255,7 @@ class test_Syntax: XCTestCase {
             var viewSum = Volume<Int32>((1, 1, 1))
             sum(view, result: &viewSum)
             
-            let value = try viewSum.asValue()
+            let value = try viewSum.asElement()
             XCTAssert(value == 312)
             
         } catch {
@@ -281,7 +281,7 @@ class test_Syntax: XCTestCase {
             let view = volume.view(at: [1, 1, 1], extents: [2, 2, 2])
 
             let viewSum = try using(device2) {
-                try sum(view).asValue()
+                try sum(view).asElement()
             }
             XCTAssert(viewSum == 312)
             
