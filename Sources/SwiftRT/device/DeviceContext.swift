@@ -95,25 +95,17 @@ class DeviceContext {
     }
 
     //--------------------------------------------------------------------------
-    /// currentComputeQueue
+    /// currentQueue
     // TODO: temporary scheme
-    public static var currentComputeQueue: DeviceQueue {
-        return DeviceContext.local.devicesStack.last![0].computeQueues[0]
-    }
-    
-    //--------------------------------------------------------------------------
-    /// currentTransferQueue
-    // TODO: temporary scheme
-    public static var currentTransferQueue: DeviceQueue {
-        return DeviceContext.local.devicesStack.last![0].transferQueues[0]
+    public static var currentQueue: DeviceQueue {
+        return DeviceContext.local.devicesStack.last![0].queues[0]
     }
     
     //--------------------------------------------------------------------------
     /// hostQueue
     public static var hostQueue: DeviceQueue {
         return DeviceContext.current[0].memory.addressing == .unified ?
-            DeviceContext.current[0].transferQueues[0] :
-            Platform.cpu.transferQueues[0]
+            DeviceContext.current[0].queues[0] : Platform.cpu.queues[0]
     }
 
     //--------------------------------------------------------------------------

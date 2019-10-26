@@ -58,7 +58,7 @@ public struct CudaDense<T> where
     //--------------------------------------------------------------------------
     // inferring
     public func inferring(y: inout T, from x: T) throws {
-        let deviceQueue = DeviceContext.currentComputeQueue as! CudaQueue
+        let deviceQueue = DeviceContext.currentQueue as! CudaQueue
         
         // TODO: is there a better fused kernel for Y = WX + b??
         // a row major matmul!
@@ -102,7 +102,7 @@ public struct CudaDense<T> where
     // gradient
     public func gradient(y: T, yDiff: T, activationDiff: inout T,
                          x: T, xDiff: inout T) throws {
-        let deviceQueue = DeviceContext.currentComputeQueue as! CudaQueue
+        let deviceQueue = DeviceContext.currentQueue as! CudaQueue
         
         if activation != .identity {
             try cudaCheck(status: cudnnActivationBackward(

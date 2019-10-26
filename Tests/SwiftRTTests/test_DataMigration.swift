@@ -122,8 +122,8 @@ class test_DataMigration: XCTestCase {
 
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let queue1 = Platform.testCpu1.computeQueues[0]
-            let queue2 = Platform.testCpu2.computeQueues[0]
+            let queue1 = Platform.testCpu1.queues[0]
+            let queue2 = Platform.testCpu2.queues[0]
 
             // create a tensor and validate migration
             var view = Volume<Float>((2, 3, 4), with: 0..<24)
@@ -200,9 +200,9 @@ class test_DataMigration: XCTestCase {
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
             let device1 = Platform.testCpu1
-            let queue1 = device1.computeQueues[0]
+            let queue1 = device1.queues[0]
             let device2 = Platform.testCpu2
-            let queue2 = device2.computeQueues[0]
+            let queue2 = device2.queues[0]
 
             // create a Matrix on device 1 and fill with indexes
             // memory is only allocated on device 1. This also shows how a
@@ -331,9 +331,9 @@ class test_DataMigration: XCTestCase {
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
             let device1 = Platform.testCpu1
-            let queue1 = device1.computeQueues[0]
+            let queue1 = device1.queues[0]
             let device2 = Platform.testCpu2
-            let queue2 = device2.computeQueues[0]
+            let queue2 = device2.queues[0]
 
             let index = (1, 1)
             var matrix1 = Matrix<Float>((3, 2))

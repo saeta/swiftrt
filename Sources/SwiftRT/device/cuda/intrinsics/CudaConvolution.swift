@@ -15,71 +15,6 @@
 //
 import CCuda
 
-////==============================================================================
-//// CudaQueue protocol default override implementation
-//public extension CudaQueue {
-//    func convolutionInstance<T, FN>(
-//        x: T,
-//        yShape: inout DataShape,
-//        filter: T,
-//        bias: T,
-//        activation: ActivationMode,
-//        strides: [Int],
-//        padding: [Int],
-//        dilations: [Int],
-//        properties: ConvolutionProperties,
-//        device: CudaDevice,
-//        filterBiasBackQueueIndex: Int) throws -> FN
-//        where FN: ConvolutionFunction, FN.T == T
-//    {
-//        return try CudaConvolution(
-//            x: x,
-//            yShape: &yShape,
-//            filter: filter,
-//            bias: bias,
-//            activation: activation,
-//            strides: strides,
-//            padding: padding,
-//            dilations: dilations,
-//            properties: properties,
-//            device: device,
-//            filterBiasBackQueueIndex: filterBiasBackQueueIndex)
-//    }
-//}
-//
-
-//==============================================================================
-// CudaQueue protocol default override implementation
-public extension CudaQueue {
-    func convolutionInstance<T>(
-        x: T,
-        yShape: inout DataShape,
-        filter: T,
-        bias: T,
-        activation: ActivationMode,
-        strides: [Int],
-        padding: [Int],
-        dilations: [Int],
-        properties: ConvolutionProperties,
-        device: CudaDevice,
-        filterBiasBackQueueIndex: Int) throws -> CudaConvolution<T>
-        where T: TensorView, T.Element: AnyFloatingPoint
-    {
-        return try CudaConvolution(
-            x: x,
-            yShape: &yShape,
-            filter: filter,
-            bias: bias,
-            activation: activation,
-            strides: strides,
-            padding: padding,
-            dilations: dilations,
-            properties: properties,
-            device: device,
-            filterBiasBackQueueIndex: filterBiasBackQueueIndex)
-    }
-}
-
 //==============================================================================
 // CudaConvolution
 public struct CudaConvolution<T>: ConvolutionFunction, Logging where
@@ -132,7 +67,7 @@ public struct CudaConvolution<T>: ConvolutionFunction, Logging where
         // TODO: change this when devices have fixed collections of queues
         // initialization can create workspaces on the devices
         // associated with the queues, so we hold on to them
-        let defaultQueue = DeviceContext.currentComputeQueue as! CudaQueue
+        let defaultQueue = DeviceContext.currentQueue as! CudaQueue
         self.dataQueue = defaultQueue
         self.filterBiasBackQueue = defaultQueue
         
@@ -380,7 +315,7 @@ public struct CudaConvolution<T>: ConvolutionFunction, Logging where
         // allocate workspace
         if fwdWorkspaceSize > 0 {
             fwdWorkspace = try dataQueue.device
-                .createArray(count: fwdWorkspaceSize, heapIndex: 0)
+                .createArray(byteCount: fwdWorkspaceSize, heapIndex: 0)
         }
         
         // report selection
@@ -475,8 +410,8 @@ public struct CudaConvolution<T>: ConvolutionFunction, Logging where
         // allocate workspace
         if bwdDataWorkspaceSize > 0 {
             bwdDataWorkspace =
-                try dataQueue.device.createArray(count: bwdDataWorkspaceSize,
-                                                   heapIndex: 0)
+                try dataQueue.device.createArray(byteCount: bwdDataWorkspaceSize,
+                                                 heapIndex: 0)
         }
 
         // report selection
@@ -569,9 +504,8 @@ public struct CudaConvolution<T>: ConvolutionFunction, Logging where
         
         // allocate workspace
         if bwdFilterWorkspaceSize > 0 {
-            bwdFilterWorkspace =
-                try dataQueue.device.createArray(count: bwdFilterWorkspaceSize,
-                                                   heapIndex: 0)
+            bwdFilterWorkspace = try dataQueue.device
+                .createArray(byteCount: bwdFilterWorkspaceSize, heapIndex: 0)
         }
 
         // report selection

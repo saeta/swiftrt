@@ -151,17 +151,21 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
 
     //-------------------------------------
     /// a collection of device queues that can be used for computation
-    var computeQueues: [DeviceQueue] { get }
-    /// a collection of device queues that can be used for data transfer
-    var transferQueues: [DeviceQueue] { get }
+    var queues: [DeviceQueue] { get }
     
     //-------------------------------------
     // device resource functions
     /// creates an array on this device
-    func createArray(count: Int, heapIndex: Int) throws -> DeviceArray
+    /// - Parameter byteCount: the number of bytes to allocate on the device
+    /// - Parameter heapIndex: the index of the heap to use
+    func createArray(byteCount: Int, heapIndex: Int) throws -> DeviceArray
     /// creates a device array from a uma buffer.
+    /// - Parameter buffer: a read only byte buffer in the device's
+    /// address space
     func createReferenceArray(buffer: UnsafeRawBufferPointer) -> DeviceArray
     /// creates a device array from a uma buffer.
+    /// - Parameter buffer: a read write byte buffer in the device's
+    /// address space
     func createMutableReferenceArray(buffer: UnsafeMutableRawBufferPointer)
         -> DeviceArray
 }

@@ -179,7 +179,7 @@ class test_Async: XCTestCase {
             Platform.log.level = .diagnostic
             Platform.local.log.categories = [.queueSync]
             
-            let queue = Platform.testCpu1.computeQueues[0]
+            let queue = Platform.testCpu1.queues[0]
             let event = try queue.createEvent()
             queue.delayQueue(atLeast: 0.001)
             try queue.record(event: event).wait()
@@ -221,7 +221,7 @@ class test_Async: XCTestCase {
     func test_perfRecordQueueEvent() {
         #if !DEBUG
         do {
-            let queue = Platform.testCpu1.computeQueues[0]
+            let queue = Platform.testCpu1.queues[0]
             self.measure {
                 do {
                     for _ in 0..<10000 {

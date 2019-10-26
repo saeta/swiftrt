@@ -20,8 +20,7 @@ public class CpuDevice: LocalComputeDevice {
     //--------------------------------------------------------------------------
     // properties
     public private(set) var trackingId = 0
-    public private(set) var computeQueues = [DeviceQueue]()
-    public private(set) var transferQueues = [DeviceQueue]()
+    public private(set) var queues = [DeviceQueue]()
     public let deviceArrayReplicaKey = Platform.nextUniqueDeviceId
     public let id: Int
     public var logInfo: LogInfo
@@ -77,8 +76,7 @@ public class CpuDevice: LocalComputeDevice {
                                    device: self, name: queueName,
                                    id: queueId))
         }
-        computeQueues = queues
-        transferQueues = computeQueues
+        self.queues = queues
 
 		// devices are statically held by the Platform.service
         trackingId = ObjectTracker.global
@@ -89,10 +87,10 @@ public class CpuDevice: LocalComputeDevice {
     //--------------------------------------------------------------------------
 	// createArray
 	//	This creates memory on the device
-    public func createArray(count: Int, heapIndex: Int = 0) throws
+    public func createArray(byteCount: Int, heapIndex: Int = 0) throws
         -> DeviceArray
     {
-        return CpuDeviceArray(device: self, count: count)
+        return CpuDeviceArray(device: self, byteCount: byteCount)
 	}
     
     //--------------------------------------------------------------------------

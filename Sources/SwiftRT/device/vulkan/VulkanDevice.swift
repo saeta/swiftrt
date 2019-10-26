@@ -21,8 +21,7 @@ public class VulkanDevice : LocalComputeDevice {
     // conformance properties
     public private(set) var trackingId = 0
     public private (set) weak var service: ComputeService!
-    public private(set) var computeQueues = [DeviceQueue]()
-    public private(set) var transferQueues = [DeviceQueue]()
+    public private(set) var queues = [DeviceQueue]()
     public var deviceArrayReplicaKey = Platform.nextUniqueDeviceId
     public let id: Int
     public var logInfo: LogInfo
@@ -90,7 +89,7 @@ public class VulkanDevice : LocalComputeDevice {
     
     //--------------------------------------------------------------------------
     // createArray
-    public func createArray(count: Int, heapIndex: Int = 0) throws
+    public func createArray(byteCount: Int, heapIndex: Int = 0) throws
         -> DeviceArray
     {
 //        return try CudaDeviceArray(device: self, count: count)

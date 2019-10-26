@@ -500,7 +500,7 @@ public final class DropoutDescriptor: ObjectTracking {
 			tensorDesc.desc, &stateSizeInBytes))
 
 		// create states array
-		states = try stream.device.createArray(count: stateSizeInBytes,
+		states = try stream.device.createArray(byteCount: stateSizeInBytes,
                                                heapIndex: 0)
 
 		// initialize

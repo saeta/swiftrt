@@ -21,8 +21,7 @@ public class CudaDevice : LocalComputeDevice {
     // properties
     public private(set) var trackingId = 0
     public private(set) weak var service: ComputeService!
-    public private(set) var computeQueues = [DeviceQueue]()
-    public private(set) var transferQueues = [DeviceQueue]()
+    public private(set) var queues = [DeviceQueue]()
     public let attributes: [String : String]
     public let deviceArrayReplicaKey = Platform.nextUniqueDeviceId
     public let id: Int
@@ -98,8 +97,7 @@ public class CudaDevice : LocalComputeDevice {
                                         device: self, name: queueName,
                                         id: queueId))
         }
-        computeQueues = queues
-        transferQueues = computeQueues
+        self.queues = queues
         
         //---------------------------------
         // devices are statically held by the Platform.service
@@ -110,10 +108,10 @@ public class CudaDevice : LocalComputeDevice {
 
 	//--------------------------------------------------------------------------
 	// createArray
-    public func createArray(count: Int, heapIndex: Int = 0) throws
+    public func createArray(byteCount: Int, heapIndex: Int = 0) throws
         -> DeviceArray
     {
-		return try CudaDeviceArray(device: self, count: count)
+		return try CudaDeviceArray(device: self, byteCount: byteCount)
 	}
 
     //--------------------------------------------------------------------------

@@ -123,7 +123,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         isReadOnly = true
         
         // create the replica device array
-        let queue = DeviceContext.currentComputeQueue
+        let queue = DeviceContext.currentQueue
         let key = queue.device.deviceArrayReplicaKey
         let bytes = UnsafeRawBufferPointer(buffer)
         let array = queue.device.createReferenceArray(buffer: bytes)
@@ -148,7 +148,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         isReadOnly = false
         
         // create the replica device array
-        let queue = DeviceContext.currentComputeQueue
+        let queue = DeviceContext.currentQueue
         let key = queue.device.deviceArrayReplicaKey
         let bytes = UnsafeMutableRawBufferPointer(buffer)
         let array = queue.device.createMutableReferenceArray(buffer: bytes)
@@ -358,7 +358,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         } else {
             // create the replica device array
             let byteCount = MemoryLayout<Element>.size * count
-            let array = try queue.device.createArray(count: byteCount,
+            let array = try queue.device.createArray(byteCount: byteCount,
                                                      heapIndex: 0)
             diagnostic("\(allocString) \(name)(\(trackingId)) " +
                 "device array on \(queue.device.name) " +

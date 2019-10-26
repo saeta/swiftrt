@@ -46,7 +46,7 @@ infix operator .=
 public func add<T>(_ lhs: T, _ rhs: T, result: inout T)
     where T: TensorView, T.Element: Numeric
 {
-    DeviceContext.currentComputeQueue.add(lhs: lhs, rhs: rhs, result: &result)
+    DeviceContext.currentQueue.add(lhs: lhs, rhs: rhs, result: &result)
 }
 
 /// returns new view
@@ -113,7 +113,7 @@ public extension TensorView where Element: BinaryInteger {
 public func subtract<T>(_ lhs: T, _ rhs: T, result: inout T)
     where T: TensorView, T.Element: Numeric
 {
-    DeviceContext.currentComputeQueue.subtract(lhs: lhs, rhs: rhs, result: &result)
+    DeviceContext.currentQueue.subtract(lhs: lhs, rhs: rhs, result: &result)
 }
 
 /// returning new view
@@ -179,7 +179,7 @@ public extension TensorView where Element: BinaryInteger {
 public func mul<T>(_ lhs: T, _ rhs: T, result: inout T)
     where T: TensorView, T.Element: Numeric
 {
-    DeviceContext.currentComputeQueue.mul(lhs: lhs, rhs: rhs, result: &result)
+    DeviceContext.currentQueue.mul(lhs: lhs, rhs: rhs, result: &result)
 }
 
 /// returning new view
@@ -245,7 +245,7 @@ public extension TensorView where Element: BinaryInteger {
 public func div<T>(_ lhs: T, _ rhs: T, result: inout T)
     where T: TensorView, T.Element: FloatingPoint
 {
-    DeviceContext.currentComputeQueue.div(lhs: lhs, rhs: rhs, result: &result)
+    DeviceContext.currentQueue.div(lhs: lhs, rhs: rhs, result: &result)
 }
 
 /// returning new view

@@ -67,7 +67,7 @@ public struct CudaPooling<T> where
     // inferring
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingForward
     public func inferring(y: inout T, from x: T) throws {
-        let deviceQueue = DeviceContext.currentComputeQueue as! CudaQueue
+        let deviceQueue = DeviceContext.currentQueue as! CudaQueue
         
         try cudaCheck(status: cudnnPoolingForward(
             deviceQueue.cudnn.handle,
@@ -88,7 +88,7 @@ public struct CudaPooling<T> where
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnPoolingBackward
     public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
-        let deviceQueue = DeviceContext.currentComputeQueue as! CudaQueue
+        let deviceQueue = DeviceContext.currentQueue as! CudaQueue
         
         try cudaCheck(status: cudnnPoolingBackward(
             deviceQueue.cudnn.handle,
