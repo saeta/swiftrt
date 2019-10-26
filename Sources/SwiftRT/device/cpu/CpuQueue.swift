@@ -36,8 +36,7 @@ public final class CpuQueue: LocalDeviceQueue {
 
     //--------------------------------------------------------------------------
     // initializers
-    public init(logInfo: LogInfo, device: ComputeDevice,
-                name: String, id: Int, isStatic: Bool)
+    public init(logInfo: LogInfo, device: ComputeDevice, name: String, id: Int)
     {
         // create serial command queue
         commandQueue = DispatchQueue(label: "\(name).commandQueue")
@@ -49,8 +48,8 @@ public final class CpuQueue: LocalDeviceQueue {
         self.name = name
         self.creatorThread = Thread.current
         let path = logInfo.namePath
-        trackingId = ObjectTracker.global.register(self, namePath: path,
-                                                   isStatic: isStatic)
+        trackingId = ObjectTracker.global
+            .register(self, namePath: path, isStatic: true)
         
         diagnostic("\(createString) DeviceQueue(\(trackingId)) " +
             "\(device.name)_\(name)", categories: .queueAlloc)

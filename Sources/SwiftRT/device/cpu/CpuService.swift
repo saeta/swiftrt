@@ -16,8 +16,14 @@
 import Foundation
 
 //==============================================================================
+/// CpuComputeService
+public protocol CpuComputeService: ComputeService {
+    var configuration: [CudaPropertyKey: Any] { get set }
+}
+
+//==============================================================================
 /// CpuService
-public class CpuService : LocalComputeService {
+public class CpuService: CpuComputeService, LocalComputeService {
     // properties
     public private(set) weak var platform: ComputePlatform!
     public private(set) var trackingId = 0
@@ -40,15 +46,6 @@ public class CpuService : LocalComputeService {
             devices.forEach { $0.timeout = timeout }
         }
     }
-    
-    // this supports unit testing and should not be used by applications
-    public var discreet1: ComputeDevice {
-        return devices[1]
-    }
-
-    public var discreet2: ComputeDevice {
-        return devices[2]
-    }
 
     //--------------------------------------------------------------------------
     // initializers
@@ -58,7 +55,7 @@ public class CpuService : LocalComputeService {
                          name: String? = nil) throws {
         self.platform = platform
         self.id = id
-        self.name = name ?? "cpu"
+        self.name = name ?? cpuServiceName
         self.logInfo = logInfo
         
         // this is held statically by the Platform
@@ -70,8 +67,58 @@ public class CpuService : LocalComputeService {
                                  logInfo: logInfo,
                                  addressing: .unified,
                                  timeout: timeout))
+    }
+    deinit { ObjectTracker.global.remove(trackingId: trackingId) }
+}
+
+//==============================================================================
+/// a set of predefined property names to simplify configuring
+/// the service properties
+public enum CpuPropertyKey: Int {
+    case queuesPerDevice
+}
+
+//==============================================================================
+/// TestCpuService
+/// A cpu implementation that acts like a discreet memory device
+public class TestCpuService: CpuComputeService, LocalComputeService {
+    // properties
+    public private(set) weak var platform: ComputePlatform!
+    public private(set) var trackingId = 0
+    public private(set) var devices = [ComputeDevice]()
+    public var deviceErrorHandler: DeviceErrorHandler?
+    public var _lastError: Error?
+    public var _errorMutex: Mutex = Mutex()
+    public let id: Int
+    public var logInfo: LogInfo
+    public let name: String
+    
+    // configuration and defaults
+    public var configuration: [CudaPropertyKey: Any] = [
+        .queuesPerDevice: 2
+    ]
+    
+    // timeout
+    public var timeout: TimeInterval? {
+        didSet {
+            devices.forEach { $0.timeout = timeout }
+        }
+    }
+    
+    //--------------------------------------------------------------------------
+    // initializers
+    public required init(platform: ComputePlatform,
+                         id: Int,
+                         logInfo: LogInfo,
+                         name: String? = nil) throws {
+        self.platform = platform
+        self.id = id
+        self.name = name ?? testCpuServiceName
+        self.logInfo = logInfo
         
-        //-----------------------------------------
+        // this is held statically by the Platform
+        trackingId = ObjectTracker.global.register(self, isStatic: true)
+        
         // add discreet cpu devices only for testing
         devices.append(CpuDevice(service: self,
                                  deviceId: 1,
@@ -87,11 +134,3 @@ public class CpuService : LocalComputeService {
     }
     deinit { ObjectTracker.global.remove(trackingId: trackingId) }
 }
-
-//==============================================================================
-/// a set of predefined property names to simplify configuring
-/// the service properties
-public enum CpuPropertyKey: Int {
-    case queuesPerDevice
-}
-

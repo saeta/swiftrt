@@ -107,7 +107,7 @@ class test_Async: XCTestCase {
             Platform.log.level = .diagnostic
             Platform.log.categories = [.dataAlloc, .dataCopy, .scheduling, .queueSync]
 
-            let device1 = Platform.testDiscreetCpu1
+            let device1 = Platform.testCpu1
             
             let m1 = Matrix<Int32>((2, 5), name: "m1", with: 0..<10)
             let m2 = Matrix<Int32>((2, 5), name: "m2", with: 0..<10)
@@ -135,8 +135,8 @@ class test_Async: XCTestCase {
         do {
             Platform.log.level = .diagnostic
             
-            let device1 = Platform.testDiscreetCpu1
-            let device2 = Platform.testDiscreetCpu2
+            let device1 = Platform.testCpu1
+            let device2 = Platform.testCpu2
 
             let m1 = Matrix<Int32>((2, 3), name: "m1", with: 0..<6)
             let m2 = Matrix<Int32>((2, 3), name: "m2", with: 0..<6)
@@ -179,7 +179,7 @@ class test_Async: XCTestCase {
             Platform.log.level = .diagnostic
             Platform.local.log.categories = [.queueSync]
             
-            let queue = Platform.testDiscreetCpu1.computeQueues[0]
+            let queue = Platform.testCpu1.computeQueues[0]
             let event = try queue.createEvent()
             queue.delayQueue(atLeast: 0.001)
             try queue.record(event: event).wait()
@@ -221,7 +221,7 @@ class test_Async: XCTestCase {
     func test_perfRecordQueueEvent() {
         #if !DEBUG
         do {
-            let queue = Platform.testDiscreetCpu1.computeQueues[0]
+            let queue = Platform.testCpu1.computeQueues[0]
             self.measure {
                 do {
                     for _ in 0..<10000 {

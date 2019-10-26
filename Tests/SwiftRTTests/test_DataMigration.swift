@@ -104,7 +104,7 @@ class test_DataMigration: XCTestCase {
     // test_tensorDataMigration
     //
     // This test uses the default UMA cpu queue, combined with the
-    // testDiscreetCpu1 and testDiscreetCpu2 device queues.
+    // testCpu1 and testCpu2 device queues.
     // The purpose is to test data replication and synchronization in the
     // following combinations.
     //
@@ -122,8 +122,8 @@ class test_DataMigration: XCTestCase {
 
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let queue1 = Platform.testDiscreetCpu1.computeQueues[0]
-            let queue2 = Platform.testDiscreetCpu2.computeQueues[0]
+            let queue1 = Platform.testCpu1.computeQueues[0]
+            let queue2 = Platform.testCpu2.computeQueues[0]
 
             // create a tensor and validate migration
             var view = Volume<Float>((2, 3, 4), with: 0..<24)
@@ -136,7 +136,7 @@ class test_DataMigration: XCTestCase {
 
             // this device is not UMA so it
             // ALLOC device array on cpu:1
-            // COPY  host --> cpu:1_s0
+            // COPY  cpu:0 --> cpu:1_s0
             _ = try view.readOnly(using: queue1)
             XCTAssert(view.tensorArray.lastAccessCopiedBuffer)
 
@@ -199,9 +199,9 @@ class test_DataMigration: XCTestCase {
 
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let device1 = Platform.testDiscreetCpu1
+            let device1 = Platform.testCpu1
             let queue1 = device1.computeQueues[0]
-            let device2 = Platform.testDiscreetCpu2
+            let device2 = Platform.testCpu2
             let queue2 = device2.computeQueues[0]
 
             // create a Matrix on device 1 and fill with indexes
@@ -291,7 +291,7 @@ class test_DataMigration: XCTestCase {
             
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let device1 = Platform.testDiscreetCpu1
+            let device1 = Platform.testCpu1
 
             // fill with index on device 1
             let index = (1, 1)
@@ -330,9 +330,9 @@ class test_DataMigration: XCTestCase {
             
             // create a named queue on two different discreet devices
             // cpu devices 1 and 2 are discreet memory versions for testing
-            let device1 = Platform.testDiscreetCpu1
+            let device1 = Platform.testCpu1
             let queue1 = device1.computeQueues[0]
-            let device2 = Platform.testDiscreetCpu2
+            let device2 = Platform.testCpu2
             let queue2 = device2.computeQueues[0]
 
             let index = (1, 1)

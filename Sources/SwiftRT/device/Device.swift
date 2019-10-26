@@ -105,9 +105,10 @@ public enum ServiceError : Error {
 //==============================================================================
 /// a set of predefined property names to simplify configuring
 /// the service properties
-public let cpuService = "cpu"
-public let cudaService = "cuda"
-public let vulkanService = "vulkan"
+public let cpuServiceName = "cpu"
+public let testCpuServiceName = "testCpu"
+public let cudaServiceName = "cuda"
+public let vulkanServiceName = "vulkan"
 
 //==============================================================================
 public enum EvaluationMode { case inference, training }

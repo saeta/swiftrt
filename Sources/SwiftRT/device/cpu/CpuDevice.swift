@@ -26,7 +26,7 @@ public class CpuDevice: LocalComputeDevice {
     public let id: Int
     public var logInfo: LogInfo
     public let name: String
-    public weak var service: ComputeService!
+    public private(set) weak var service: ComputeService!
     public var timeout: TimeInterval?
     public var deviceErrorHandler: DeviceErrorHandler?
     public var limits: DeviceLimits
@@ -41,7 +41,7 @@ public class CpuDevice: LocalComputeDevice {
     
     //--------------------------------------------------------------------------
 	// initializers
-	public init(service: CpuService,
+	public init(service: CpuComputeService,
                 deviceId: Int,
                 logInfo: LogInfo,
                 addressing: MemoryAddressing,
@@ -70,12 +70,12 @@ public class CpuDevice: LocalComputeDevice {
         assert(service.configuration[.queuesPerDevice] is Int)
         let queueCount = service.configuration[.queuesPerDevice] as! Int
         var queues = [DeviceQueue]()
-        for id in 0..<queueCount {
-            let queueName = "queue:\(id)"
+        for _ in 0..<queueCount {
+            let queueId = Platform.nextUniqueQueueId
+            let queueName = "queue:\(queueId)"
             queues.append(CpuQueue(logInfo: logInfo.flat(queueName),
                                    device: self, name: queueName,
-                                   id: Platform.nextUniqueQueueId,
-                                   isStatic: true))
+                                   id: queueId))
         }
         computeQueues = queues
         transferQueues = computeQueues

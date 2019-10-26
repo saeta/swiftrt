@@ -61,9 +61,8 @@ class test_Syntax: XCTestCase {
     func test_setServiceProperties() {
         Platform.log.level = .diagnostic
         Platform.log.categories = [.properties]
-        Platform.local.servicePriority = [vulkanService]
-        let vulkan = Platform.local.services[vulkanService] as? VulkanService
-        vulkan?.configuration = [
+        Platform.local.servicePriority = [vulkanServiceName]
+        Platform.vulkan?.configuration = [
             .applicationName : "MyApp",
             .applicationVersion : 41,
             .engineName : "MyEngine",
@@ -211,8 +210,8 @@ class test_Syntax: XCTestCase {
             Platform.log.level = .diagnostic
             Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
             
-            let device1 = Platform.testDiscreetCpu1
-            let device2 = Platform.testDiscreetCpu2
+            let device1 = Platform.testCpu1
+            let device2 = Platform.testCpu2
 
             let volume = using(device1) {
                 Volume<Int32>((3, 4, 5)).filledWithIndex()
@@ -272,8 +271,8 @@ class test_Syntax: XCTestCase {
             Platform.log.level = .diagnostic
             Platform.log.categories = [.dataAlloc, .dataCopy, .dataMutation]
 
-            let device1 = Platform.testDiscreetCpu1
-            let device2 = Platform.testDiscreetCpu2
+            let device1 = Platform.testCpu1
+            let device2 = Platform.testCpu2
 
             let volume = using(device1) {
                 Volume<Int32>((3, 4, 5)).filledWithIndex()

@@ -28,7 +28,8 @@ final public class Platform: LocalPlatform {
     public var id: Int = 0
     public static let local = Platform()
     public var serviceModuleDirectory = URL(fileURLWithPath: "TODO")
-    public var servicePriority = [cpuService, cudaService, vulkanService]
+    public var servicePriority =
+        [cpuServiceName, cudaServiceName, vulkanServiceName]
     public lazy var services: [String : ComputeService] = {
         loadServices()
         return Platform._services!
@@ -49,19 +50,30 @@ final public class Platform: LocalPlatform {
         return Platform.queueIdCounter.increment()
     }
 
+    //--------------------------------------------------------------------------
     // shortcut to the cpu device
     public static var cpu: ComputeDevice = {
-        return Platform.local.services[cpuService]!.devices[0]
+        return Platform.local.services[cpuServiceName]!.devices[0]
+    }()
+
+    // shortcut to cuda sercoe
+    public static var cuda: CudaService? = {
+        return Platform.local.services[cudaServiceName] as? CudaService
+    }()
+    
+    // shortcut to vulkan service
+    public static var vulkan: VulkanService? = {
+        return Platform.local.services[vulkanServiceName] as? VulkanService
     }()
 
     //--------------------------------------------------------------------------
     // these are to aid unit tests
-    public static var testDiscreetCpu1: ComputeDevice = {
-        return (Platform.local.services[cpuService] as! CpuService).discreet1
+    public static var testCpu1: ComputeDevice = {
+        return Platform.local.services[testCpuServiceName]!.devices[0]
     }()
 
-    public static var testDiscreetCpu2: ComputeDevice = {
-        return (Platform.local.services[cpuService] as! CpuService).discreet2
+    public static var testCpu2: ComputeDevice = {
+        return Platform.local.services[testCpuServiceName]!.devices[1]
     }()
 
     //--------------------------------------------------------------------------
@@ -132,27 +144,38 @@ public extension LocalPlatform {
         do {
             //-------------------------------------
             // add required cpu service
-            let cpuService = try CpuService(platform: Platform.local,
-                                            id: 0, logInfo: logInfo)
-            loadedServices[cpuService.name] = cpuService
+            loadedServices[cpuServiceName] =
+                try CpuService(platform: Platform.local,
+                               id: loadedServices.count,
+                               logInfo: logInfo,
+                               name: cpuServiceName)
+            
+            //-------------------------------------
+            // add discreet test cpu service
+            loadedServices[testCpuServiceName] =
+                try TestCpuService(platform: Platform.local,
+                                   id: loadedServices.count,
+                                   logInfo: logInfo,
+                                   name: testCpuServiceName)
             
             //-------------------------------------
             // static inclusions
             #if VULKAN
-            let vulkanService =
+            loadedServices[vulkanServiceName] =
                 try VulkanService(platform: Platform.local,
                                   id: loadedServices.count,
-                                  logInfo: logInfo)
-            loadedServices[vulkanService.name] = vulkanService
+                                  logInfo: logInfo,
+                                  name: vulkanServiceName)
             #endif
 
             #if CUDA
-            let cudaService = try CudaComputeService(platform: Platform.local,
-                                                     id: loadedServices.count,
-                                                     logInfo: logInfo)
-            loadedServices[cudaService.name] = cudaService
+            loadedServices[cudaServiceName] =
+                try CudaService(platform: Platform.local,
+                                id: loadedServices.count,
+                                logInfo: logInfo,
+                                name: cudaServiceName)
             #endif
-
+            
             //-------------------------------------
             // dynamically load installed services
             let bundles = getPlugInBundles()
@@ -251,7 +274,7 @@ public extension LocalPlatform {
         } else {
             writeLog("CPU substituted. Service `\(serviceName)` not found.",
                 level: .warning)
-            return requestDevice(serviceName: cpuService)
+            return Platform.cpu
         }
     }
     

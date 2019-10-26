@@ -42,7 +42,8 @@ public final class CudaQueue: LocalDeviceQueue {
     //--------------------------------------------------------------------------
     // initializers
     public init(logInfo: LogInfo, device: CudaDevice,
-                name: String, id: Int, isStatic: Bool) throws {
+                name: String, id: Int) throws
+    {
         // create a completion event
         cudaDevice = device
         self.logInfo = logInfo
@@ -50,7 +51,7 @@ public final class CudaQueue: LocalDeviceQueue {
         self.name = name
         self.creatorThread = Thread.current
         let path = logInfo.namePath
-
+        
         // select the specified device
         try cudaDevice.select()
         // create a queue associated with the device
@@ -59,14 +60,14 @@ public final class CudaQueue: LocalDeviceQueue {
         try cudaCheck(status: cudaStreamCreateWithFlags(&cudaStream, flags))
         handle = cudaStream!
         cudnn = try CudnnHandle(deviceId: cudaDevice.id, using: handle,
-                                isStatic: isStatic)
+                                isStatic: true)
         cublas = try CublasHandle(deviceId: cudaDevice.id, using: handle,
-                                  isStatic: isStatic)
+                                  isStatic: true)
         trackingId = ObjectTracker.global.register(self, namePath: path,
-                                                   isStatic: isStatic)
-
+                                                   isStatic: true)
+        
         diagnostic("\(createString) DeviceQueue(\(trackingId)) " +
-                           "\(device.name)_\(name)", categories: .queueAlloc)
+            "\(device.name)_\(name)", categories: .queueAlloc)
     }
 
     //--------------------------------------------------------------------------
@@ -74,10 +75,10 @@ public final class CudaQueue: LocalDeviceQueue {
     deinit {
         assert(Thread.current === creatorThread,
                "Queue has been captured and is being released by a " +
-                       "different thread. Probably by a queued function on the queue.")
-
+            "different thread. Probably by a queued function on the queue.")
+        
         diagnostic("\(releaseString) DeviceQueue(\(trackingId)) " +
-                           "\(device.name)_\(name)", categories: [.queueAlloc])
+            "\(device.name)_\(name)", categories: [.queueAlloc])
 
         do {
             // select the device
