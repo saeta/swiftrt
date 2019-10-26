@@ -15,7 +15,7 @@
 //
 import CCuda
 
-public struct CudaDense<T> where
+public class CudaDense<T> where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
@@ -23,6 +23,7 @@ public struct CudaDense<T> where
     private let activationDescriptor: ActivationDescriptor!
     private let biasTensorDescriptor: TensorDescriptor
     private let yTensorDescriptor: TensorDescriptor
+    private var activationDiff: T!
     private let weight: T
     private let bias: T
 
@@ -100,11 +101,14 @@ public struct CudaDense<T> where
 
     //--------------------------------------------------------------------------
     // gradient
-    public func gradient(y: T, yDiff: T, activationDiff: inout T,
-                         x: T, xDiff: inout T) throws {
+    public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
         let deviceQueue = DeviceContext.currentQueue as! CudaQueue
         
         if activation != .identity {
+            if activationDiff == nil {
+                activationDiff = y.createDense()
+            }
+            
             try cudaCheck(status: cudnnActivationBackward(
                 deviceQueue.cudnn.handle,
                 activationDescriptor!.desc,
