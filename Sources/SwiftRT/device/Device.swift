@@ -111,7 +111,12 @@ public let cudaServiceName = "cuda"
 public let vulkanServiceName = "vulkan"
 
 //==============================================================================
-public enum EvaluationMode { case inference, training }
+public enum EvaluationMode {
+    /// operation is used to perform inference
+    case inferring
+    /// operation is used to perform training
+    case training
+}
 
 //==============================================================================
 /// LocalComputeService

@@ -54,6 +54,14 @@ public class CudaDense<T> where
         // with the same scalarType for y
         yShape = DataShape(extents: [x.extents[0], weight.extents[1]])
         yTensorDescriptor = try x.createTensorDescriptor(asShape: yShape)
+        
+        // allocate the `activationDiff` temporary tensor if the activation
+        // is not identity and we are doing training
+        if activation != .identity &&
+            DeviceContext.current.evaluateAs == .training
+        {
+            activationDiff = x.createDense(with: yShape.extents)
+        }
     }
 
     //--------------------------------------------------------------------------
@@ -105,10 +113,6 @@ public class CudaDense<T> where
         let deviceQueue = DeviceContext.currentQueue as! CudaQueue
         
         if activation != .identity {
-            if activationDiff == nil {
-                activationDiff = y.createDense()
-            }
-            
             try cudaCheck(status: cudnnActivationBackward(
                 deviceQueue.cudnn.handle,
                 activationDescriptor!.desc,

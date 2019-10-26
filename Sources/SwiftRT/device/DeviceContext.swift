@@ -53,12 +53,22 @@ public func using<R>(_ devices: [ComputeDevice],
 
 //==============================================================================
 /// DeviceContext
+public struct DeviceContextState {
+    /// current collection of devices used to execute/distribute work
+    var devices: [ComputeDevice]
+    /// specifies whether operators in the current scope are
+    /// evaluated for training or inferring
+    var evaluateAs: EvaluationMode = .inferring
+}
+
+//==============================================================================
+/// DeviceContext
 /// Manages the scope for the current devices, log, and error handlers
 @usableFromInline
 class DeviceContext {
     /// stack of current device collections used to execute/distribute work
-    var devicesStack: [[ComputeDevice]]
-
+    var stateStack: [DeviceContextState]
+    
     //--------------------------------------------------------------------------
     /// thread data key
     private static let key: pthread_key_t = {
@@ -90,34 +100,38 @@ class DeviceContext {
 
     //--------------------------------------------------------------------------
     /// current
-    public static var current: [ComputeDevice] {
-        return DeviceContext.local.devicesStack.last!
+    public static var current: DeviceContextState {
+        return DeviceContext.local.stateStack.last!
     }
 
     //--------------------------------------------------------------------------
     /// currentQueue
     // TODO: temporary scheme
     public static var currentQueue: DeviceQueue {
-        return DeviceContext.local.devicesStack.last![0].queues[0]
+        return DeviceContext.local.stateStack.last!.devices[0].queues[0]
     }
     
     //--------------------------------------------------------------------------
     /// hostQueue
     public static var hostQueue: DeviceQueue {
-        return DeviceContext.current[0].memory.addressing == .unified ?
-            DeviceContext.current[0].queues[0] : Platform.cpu.queues[0]
+        let currentDevice = DeviceContext.current.devices[0]
+        return currentDevice.memory.addressing == .unified ?
+            currentDevice.queues[0] : Platform.cpu.queues[0]
     }
 
     //--------------------------------------------------------------------------
     /// logInfo
     // `last` is always valid because there will always be
     // the platform default queue and logInfo
-    public var logInfo: LogInfo { return devicesStack.last![0].logInfo }
+    public var logInfo: LogInfo { return stateStack.last!.devices[0].logInfo }
 
     //--------------------------------------------------------------------------
     // initializers
     private init() {
-        devicesStack = [[Platform.local.defaultDevice]]
+        stateStack = [
+            DeviceContextState(devices: [Platform.local.defaultDevice],
+                               evaluateAs: .inferring)
+        ]
     }
 
     //--------------------------------------------------------------------------
@@ -126,7 +140,10 @@ class DeviceContext {
     /// it the current queue used by operator functions
     @usableFromInline
     func push(devices: [ComputeDevice]) {
-        devicesStack.append(devices)
+        let evaluateAs = DeviceContext.local.stateStack.last!.evaluateAs
+        let state = DeviceContextState(devices: devices,
+                                       evaluateAs: evaluateAs)
+        stateStack.append(state)
     }
 
     //--------------------------------------------------------------------------
@@ -134,130 +151,7 @@ class DeviceContext {
     /// restores the previous current devices collection
     @usableFromInline
     func popDevices() {
-        assert(devicesStack.count > 1)
-        _ = devicesStack.popLast()
+        assert(stateStack.count > 1)
+        _ = stateStack.popLast()
     }
 }
-
-////==============================================================================
-///// Executes a closure on the specified queue
-///// - Parameter queue: the queue to set as the `currentQueue`
-///// - Parameter body: A closure whose operations are to be executed on the
-/////             specified queue
-//public func using<R>(_ queue: DeviceQueue,
-//                     perform body: () throws -> R) rethrows -> R {
-//    // sets the default queue and logging info for the current scope
-//    DeviceContext.local.push(queue: queue)
-//    defer { DeviceContext.local.popQueue() }
-//    // execute the body
-//    return try body()
-//}
-//
-////==============================================================================
-///// DeviceContext
-///// Manages the scope for the current queue, log, and error handlers
-//@usableFromInline
-//class DeviceContext {
-//    /// stack of default device queues, logging, and exception handler
-//    var queueStack: [DeviceQueue]
-//
-//    //--------------------------------------------------------------------------
-//    /// thread data key
-//    private static let key: pthread_key_t = {
-//        var key = pthread_key_t()
-//        pthread_key_create(&key) {
-//            #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
-//            let _: AnyObject = Unmanaged.fromOpaque($0).takeRetainedValue()
-//            #else
-//            let _: AnyObject = Unmanaged.fromOpaque($0!).takeRetainedValue()
-//            #endif
-//        }
-//        return key
-//    }()
-//
-//    //--------------------------------------------------------------------------
-//    /// returns the thread local instance of the queues stack
-//    @usableFromInline
-//    static var local: DeviceContext {
-//        // try to get an existing state
-//        if let state = pthread_getspecific(key) {
-//            return Unmanaged.fromOpaque(state).takeUnretainedValue()
-//        } else {
-//            // create and return new state
-//            let state = DeviceContext()
-//            pthread_setspecific(key, Unmanaged.passRetained(state).toOpaque())
-//            return state
-//        }
-//    }
-//
-//    //--------------------------------------------------------------------------
-//    /// current
-//    public static var current: DeviceQueue {
-//        return DeviceContext.local.queueStack.last!
-//    }
-//
-//    //--------------------------------------------------------------------------
-//    /// hostQueue
-//    public static var hostQueue: DeviceQueue {
-//        return DeviceContext.current.device.memory.isUnified ?
-//            DeviceContext.current : DeviceContext._umaQueue
-//    }
-//
-//    private static var _umaQueue: DeviceQueue = {
-//        // create dedicated queue for app data transfer
-//        return try! Platform.local.createQueue(
-//            deviceId: 0, serviceName: "cpu", name: "host", isStatic: true)
-//    }()
-//
-//    //--------------------------------------------------------------------------
-//    /// auxHostQueue
-//    // create dedicated queue for data transfer when accessing
-//    // within a queue closure or within HostMultiWrite
-//    public static var auxHostQueue: DeviceQueue = {
-//        return try! Platform.local.createQueue(
-//            deviceId: 0, serviceName: "cpu", name: "dataSync", isStatic: true)
-//    }()
-//
-//    //--------------------------------------------------------------------------
-//    /// logInfo
-//    // there will always be the platform default queue and logInfo
-//    public var logInfo: LogInfo { return queueStack.last!.logInfo }
-//
-//    //--------------------------------------------------------------------------
-//    /// updateDefault
-//    public func updateDefault(queue: DeviceQueue) {
-//        queueStack[0] = queue
-//    }
-//
-//    //--------------------------------------------------------------------------
-//    // initializers
-//    private init() {
-//        do {
-//            // create the default queue based on service and device priority.
-//            let queue = try Platform.local.defaultDevice.createQueue(
-//                name: "default", isStatic: true)
-//            queueStack = [queue]
-//        } catch {
-//            print("Failed to create default queues")
-//            exit(1)
-//        }
-//    }
-//
-//    //--------------------------------------------------------------------------
-//    /// push(queue:
-//    /// pushes the specified queue onto a queue stack which makes
-//    /// it the current queue used by operator functions
-//    @usableFromInline
-//    func push(queue: DeviceQueue) {
-//        queueStack.append(queue)
-//    }
-//
-//    //--------------------------------------------------------------------------
-//    /// popQueue
-//    /// restores the previous current queue
-//    @usableFromInline
-//    func popQueue() {
-//        assert(queueStack.count > 1)
-//        _ = queueStack.popLast()
-//    }
-//}
