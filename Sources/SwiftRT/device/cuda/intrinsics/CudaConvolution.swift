@@ -17,7 +17,7 @@ import CCuda
 
 //==============================================================================
 // CudaConvolution
-public struct CudaConvolution<T>: ConvolutionFunction, Logging where
+public struct CudaConvolution<T>: Logging where
     T: TensorView, T.Element: AnyFloatingPoint
 {
     // queues

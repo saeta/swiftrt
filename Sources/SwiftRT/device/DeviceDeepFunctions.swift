@@ -16,61 +16,6 @@
 import Foundation
 
 //==============================================================================
-// QueueDeepFunctions
-public protocol QueueDeepFunctions {
-    func convolutionInstance<T, FN>(
-        x: T,
-        yShape: inout DataShape,
-        filter: T,
-        bias: T,
-        activation: ActivationMode,
-        strides: [Int],
-        padding: [Int],
-        dilations: [Int],
-        properties: ConvolutionProperties,
-        device: CudaDevice,
-        filterBiasBackQueueIndex: Int) throws -> FN
-        where FN: ConvolutionFunction, FN.T == T
-}
-
-//==============================================================================
-// default implementation on CPU
-public extension QueueDeepFunctions {
-    func convolutionInstance<T, FN>(
-        x: T,
-        yShape: inout DataShape,
-        filter: T,
-        bias: T,
-        activation: ActivationMode,
-        strides: [Int],
-        padding: [Int],
-        dilations: [Int],
-        properties: ConvolutionProperties,
-        device: CudaDevice,
-        filterBiasBackQueueIndex: Int) throws -> FN
-        where FN: ConvolutionFunction, FN.T == T
-    {
-        // Insert a CPU implementation here to be compiled by MLIR
-        fatalError()
-    }
-}
-
-//==============================================================================
-// ConvolutionFunction
-public protocol ConvolutionFunction {
-    associatedtype T where T: TensorView, T.Element: AnyFloatingPoint
-    
-    // infer y = f(x)
-    func inferring(y: inout T, from x: T, filter: T, bias: T) throws
-    
-    // compute gradients
-    func gradient(y: T, yDiff: T,
-                  filter: T, filterDiff: inout T,
-                  bias: T, biasDiff: inout T,
-                  x: T, xDiff: inout T) throws
-}
-
-//==============================================================================
 // ConvolutionProperties
 public struct ConvolutionProperties {
     var activationNan: NanPropagation = .noPropagate
