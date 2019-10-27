@@ -85,7 +85,7 @@ public enum ConvolutionMode: Int, Codable, CaseIterable {
 }
 
 //==============================================================================
-public enum PoolingMode {
+public enum PoolingMode: Int, Codable {
     case averageExcludePadding
     case averageIncludePadding
     case max
@@ -93,7 +93,7 @@ public enum PoolingMode {
 }
 
 //==============================================================================
-public enum ActivationMode {
+public enum ActivationMode: Int, Codable {
     case sigmoid
     case relu
     case tanh
@@ -103,7 +103,7 @@ public enum ActivationMode {
 }
 
 //==============================================================================
-public enum TransposeOp {
+public enum TransposeOp: Int, Codable {
     case transpose
     case noTranspose
     case conjugateTranspose
@@ -121,12 +121,12 @@ public struct DeviceLimits {
 }
 
 //==============================================================================
-public enum SoftmaxAlgorithm {
+public enum SoftmaxAlgorithm: Int, Codable {
     case accurate, fast, log
 }
 
 //==============================================================================
-public enum SoftmaxMode {
+public enum SoftmaxMode: Int, Codable {
     case channel, instance
 }
 
