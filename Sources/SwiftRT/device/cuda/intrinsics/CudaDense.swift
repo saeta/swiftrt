@@ -58,7 +58,7 @@ public class CudaDense<T> where
         // allocate the `activationDiff` temporary tensor if the activation
         // is not identity and we are doing training
         if activation != .identity &&
-            DeviceContext.current.evaluateAs == .training
+            DeviceContext.current.evaluationIs == .training
         {
             activationDiff = x.createDense(with: yShape.extents)
         }
