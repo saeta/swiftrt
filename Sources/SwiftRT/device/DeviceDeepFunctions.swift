@@ -17,7 +17,7 @@ import Foundation
 
 //==============================================================================
 // ConvolutionProperties
-public struct ConvolutionProperties {
+public struct ConvolutionProperties: Codable {
     var activationNan: NanPropagation = .noPropagate
     var activationReluCeiling: Double = 0
     var backwardDataAlgorithm: ConvolutionBwdDataAlgorithm = .fastest
@@ -31,7 +31,7 @@ public struct ConvolutionProperties {
 
 //==============================================================================
 // ConvolutionFwdAlgorithm
-public enum ConvolutionFwdAlgorithm: CaseIterable {
+public enum ConvolutionFwdAlgorithm: Int, Codable, CaseIterable {
     case implicitGEMM
     case implicitPrecompGEMM
     case gemm
@@ -48,7 +48,7 @@ public enum ConvolutionFwdAlgorithm: CaseIterable {
 
 //==============================================================================
 // ConvolutionBwdDataAlgorithm
-public enum ConvolutionBwdDataAlgorithm: CaseIterable {
+public enum ConvolutionBwdDataAlgorithm: Int, Codable, CaseIterable {
     case algo0
     case algo1
     case fft
@@ -63,7 +63,7 @@ public enum ConvolutionBwdDataAlgorithm: CaseIterable {
 
 //==============================================================================
 // ConvolutionBwdFilterAlgorithm
-public enum ConvolutionBwdFilterAlgorithm: CaseIterable {
+public enum ConvolutionBwdFilterAlgorithm: Int, Codable, CaseIterable {
     case algo0
     case algo1
     case algo3
@@ -79,7 +79,7 @@ public enum ConvolutionBwdFilterAlgorithm: CaseIterable {
 
 //==============================================================================
 // ConvolutionMode
-public enum ConvolutionMode: CaseIterable {
+public enum ConvolutionMode: Int, Codable, CaseIterable {
     case convolution
     case crossCorrelation
 }

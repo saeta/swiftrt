@@ -192,13 +192,13 @@ public func curandGetErrorString(_ status: curandStatus_t) -> String {
 
 //==============================================================================
 /// ReductionOp
-public enum ReductionOp {
+public enum ReductionOp: Int, Codable {
     case add, mul, min, max, amax, avg, norm1, norm2
 }
 
 //==============================================================================
 /// NanPropagation
-public enum NanPropagation {
+public enum NanPropagation: Int, Codable {
     case propagate, noPropagate
 }
 
