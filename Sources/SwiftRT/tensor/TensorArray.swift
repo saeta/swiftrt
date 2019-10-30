@@ -192,7 +192,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         diagnostic("\(copyString) \(name)(\(trackingId)) " +
             "\(otherMaster.device.name)" +
             "\(setText(" --> ", color: .blue))" +
-            "\(queue.device.name)_s\(queue.id) " +
+            "\(queue.device.name)_q\(queue.id) " +
             "\(String(describing: Element.self))[\(count)]",
             categories: .dataCopy)
     }
@@ -285,7 +285,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
                 diagnostic("\(copyString) \(name)(\(trackingId)) " +
                     "uma:\(master.device.name)" +
                     "\(setText(" --> ", color: .blue))" +
-                    "\(other.device.name)_s\(queue.id) " +
+                    "\(other.device.name)_q\(queue.id) " +
                     "\(String(describing: Element.self))[\(count)]",
                     categories: .dataCopy)
             }
@@ -295,7 +295,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
             try queue.copyAsync(to: other.buffer, from: master)
             
             diagnostic("\(copyString) \(name)(\(trackingId)) " +
-                "\(master.device.name)_s\(queue.id)" +
+                "\(master.device.name)_q\(queue.id)" +
                 "\(setText(" --> ", color: .blue))uma:\(other.device.name) " +
                 "\(String(describing: Element.self))[\(count)]",
                 categories: .dataCopy)
@@ -307,7 +307,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
             try queue.copyAsync(to: host.buffer, from: master)
             
             diagnostic("\(copyString) \(name)(\(trackingId)) " +
-                "\(master.device.name)_s\(queue.id)" +
+                "\(master.device.name)_q\(queue.id)" +
                 "\(setText(" --> ", color: .blue))\(other.device.name)" +
                 "\(String(describing: Element.self))[\(count)]",
                 categories: .dataCopy)
@@ -318,7 +318,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
             diagnostic("\(copyString) \(name)(\(trackingId)) " +
                 "\(other.device.name)" +
                 "\(setText(" --> ", color: .blue))" +
-                "\(master.device.name)_s\(queue.id) " +
+                "\(master.device.name)_q\(queue.id) " +
                 "\(String(describing: Element.self))[\(count)]",
                 categories: .dataCopy)
         }
@@ -341,7 +341,7 @@ final public class TensorArray<Element>: ObjectTracking, Logging {
         diagnostic("\(copyString) \(name)(\(trackingId)) " +
             "\(master.device.name)" +
             "\(setText(" --> ", color: .blue))" +
-            "\(queue.device.name)_s\(queue.id) " +
+            "\(queue.device.name)_q\(queue.id) " +
             "\(String(describing: Element.self))[\(count)]",
             categories: .dataCopy)
     }
