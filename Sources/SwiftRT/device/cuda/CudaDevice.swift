@@ -108,10 +108,11 @@ public class CudaDevice : LocalComputeDevice {
 
 	//--------------------------------------------------------------------------
 	// createArray
-    public func createArray(byteCount: Int, heapIndex: Int = 0) throws
+    public func createArray(byteCount: Int, heapIndex: Int, zero: Bool) throws
         -> DeviceArray
     {
-		return try CudaDeviceArray(device: self, byteCount: byteCount)
+        return try CudaDeviceArray(device: self, byteCount: byteCount,
+                                   zero: zero)
 	}
 
     //--------------------------------------------------------------------------

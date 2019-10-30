@@ -501,7 +501,7 @@ public final class DropoutDescriptor: ObjectTracking {
 
 		// create states array
 		states = try stream.device.createArray(byteCount: stateSizeInBytes,
-                                               heapIndex: 0)
+                                               heapIndex: 0, zero: false)
 
 		// initialize
 		try cudaCheck(status: cudnnSetDropoutDescriptor(

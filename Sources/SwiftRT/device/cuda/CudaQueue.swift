@@ -410,6 +410,8 @@ public final class CudaReductionContext: ReductionContext {
         ))
         workspaceSizeInBytes = tempWorkspaceSizeInBytes
         workspace = try queue.device
-            .createArray(byteCount: workspaceSizeInBytes, heapIndex: 0)
+            .createArray(byteCount: workspaceSizeInBytes,
+                         heapIndex: 0,
+                         zero: false)
     }
 }

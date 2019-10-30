@@ -58,7 +58,10 @@ public struct DeviceContextState {
     var devices: [ComputeDevice]
     /// specifies whether operators in the current scope are
     /// evaluated for training or inferring
-    var evaluationIs: EvaluationMode = .inferring
+    var evaluationMode: EvaluationMode = .inferring
+    /// helpers
+    var isInferring: Bool { return evaluationMode == .inferring }
+    var isTraining: Bool { return evaluationMode == .training }
 }
 
 //==============================================================================
@@ -130,7 +133,7 @@ class DeviceContext {
     private init() {
         stateStack = [
             DeviceContextState(devices: [Platform.local.defaultDevice],
-                               evaluationIs: .inferring)
+                               evaluationMode: .inferring)
         ]
     }
 
@@ -140,9 +143,9 @@ class DeviceContext {
     /// it the current queue used by operator functions
     @usableFromInline
     func push(devices: [ComputeDevice]) {
-        let evaluateAs = DeviceContext.local.stateStack.last!.evaluationIs
+        let evaluationMode = DeviceContext.local.stateStack.last!.evaluationMode
         let state = DeviceContextState(devices: devices,
-                                       evaluationIs: evaluateAs)
+                                       evaluationMode: evaluationMode)
         stateStack.append(state)
     }
 

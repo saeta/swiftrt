@@ -24,10 +24,13 @@ public class CpuDeviceArray : DeviceArray {
     
     //--------------------------------------------------------------------------
 	/// with count
-	public init(device: ComputeDevice, byteCount: Int) {
+	public init(device: ComputeDevice, byteCount: Int, zero: Bool) {
         self.device = device
         buffer = UnsafeMutableRawBufferPointer.allocate(
             byteCount: byteCount, alignment: MemoryLayout<Double>.alignment)
+        if zero {
+            buffer.initializeMemory(as: UInt8.self, repeating: 0)
+        }
         self.isReadOnly = false
         self.trackingId = ObjectTracker.global.register(self)
 	}

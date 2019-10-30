@@ -24,7 +24,7 @@ public protocol DeviceQueue:
     ObjectTracking,
     Logger,
     DeviceErrorHandling,
-    QueueIntrinsics
+    DeviceIntrinsics
 {
     //--------------------------------------------------------------------------
     /// options to use when creating queue events

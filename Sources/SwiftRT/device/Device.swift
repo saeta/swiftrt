@@ -163,7 +163,9 @@ public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     /// creates an array on this device
     /// - Parameter byteCount: the number of bytes to allocate on the device
     /// - Parameter heapIndex: the index of the heap to use
-    func createArray(byteCount: Int, heapIndex: Int) throws -> DeviceArray
+    /// - Parameter zero: `true` to inialize the array to zero
+    func createArray(byteCount: Int, heapIndex: Int, zero: Bool) throws
+        -> DeviceArray
     /// creates a device array from a uma buffer.
     /// - Parameter buffer: a read only byte buffer in the device's
     /// address space

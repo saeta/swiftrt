@@ -87,10 +87,10 @@ public class CpuDevice: LocalComputeDevice {
     //--------------------------------------------------------------------------
 	// createArray
 	//	This creates memory on the device
-    public func createArray(byteCount: Int, heapIndex: Int = 0) throws
+    public func createArray(byteCount: Int, heapIndex: Int, zero: Bool) throws
         -> DeviceArray
     {
-        return CpuDeviceArray(device: self, byteCount: byteCount)
+        return CpuDeviceArray(device: self, byteCount: byteCount, zero: zero)
 	}
     
     //--------------------------------------------------------------------------

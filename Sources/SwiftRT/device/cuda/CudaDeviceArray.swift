@@ -28,12 +28,15 @@ public class CudaDeviceArray : DeviceArray {
 
     //--------------------------------------------------------------------------
     // initializers
-    public init(device: CudaDevice, byteCount: Int) throws {
+    public init(device: CudaDevice, byteCount: Int, zero: Bool) throws {
         cudaDevice = device
         self.isReadOnly = false
         try cudaDevice.select()
 		var pointer: UnsafeMutableRawPointer?
 		try cudaCheck(status: cudaMalloc(&pointer, byteCount))
+        if zero {
+            try cudaCheck(status: cudaMemset(&pointer, 0, byteCount))
+        }
         buffer = UnsafeMutableRawBufferPointer(start: pointer, count: byteCount)
 		trackingId = ObjectTracker.global.register(
                 self, supplementalInfo: "count: \(byteCount)")

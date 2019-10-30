@@ -19,7 +19,7 @@ import Foundation
 // QueueIntrinsics
 /// The required set of base level intrinsic functions for a `DeviceQueue`
 /// TODO: probably remove all this for now!
-public protocol QueueIntrinsics {
+public protocol DeviceIntrinsics {
     /// Computes the absolute value of the specified TensorView element-wise.
     func abs<T>(x: T, result: inout T) where
         T: TensorView, T.Element: FloatingPoint

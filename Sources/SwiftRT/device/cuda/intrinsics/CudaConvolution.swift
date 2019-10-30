@@ -315,7 +315,8 @@ public struct CudaConvolution<T>: Logging where
         // allocate workspace
         if fwdWorkspaceSize > 0 {
             fwdWorkspace = try dataQueue.device
-                .createArray(byteCount: fwdWorkspaceSize, heapIndex: 0)
+                .createArray(byteCount: fwdWorkspaceSize,
+                             heapIndex: 0, zero: false)
         }
         
         // report selection
@@ -411,7 +412,7 @@ public struct CudaConvolution<T>: Logging where
         if bwdDataWorkspaceSize > 0 {
             bwdDataWorkspace =
                 try dataQueue.device.createArray(byteCount: bwdDataWorkspaceSize,
-                                                 heapIndex: 0)
+                                                 heapIndex: 0, zero: false)
         }
 
         // report selection
@@ -505,7 +506,8 @@ public struct CudaConvolution<T>: Logging where
         // allocate workspace
         if bwdFilterWorkspaceSize > 0 {
             bwdFilterWorkspace = try dataQueue.device
-                .createArray(byteCount: bwdFilterWorkspaceSize, heapIndex: 0)
+                .createArray(byteCount: bwdFilterWorkspaceSize,
+                             heapIndex: 0, zero: false)
         }
 
         // report selection

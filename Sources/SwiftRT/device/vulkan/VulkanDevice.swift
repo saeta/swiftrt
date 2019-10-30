@@ -89,7 +89,7 @@ public class VulkanDevice : LocalComputeDevice {
     
     //--------------------------------------------------------------------------
     // createArray
-    public func createArray(byteCount: Int, heapIndex: Int = 0) throws
+    public func createArray(byteCount: Int, heapIndex: Int = 0, zero: Bool) throws
         -> DeviceArray
     {
 //        return try CudaDeviceArray(device: self, count: count)

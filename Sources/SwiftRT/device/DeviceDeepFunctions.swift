@@ -85,6 +85,13 @@ public enum ConvolutionMode: Int, Codable, CaseIterable {
 }
 
 //==============================================================================
+// BatchNormalizeMode
+public enum BatchNormalizeMode: Int, Codable {
+    case perActivation
+    case spatial
+}
+
+//==============================================================================
 public enum PoolingMode: Int, Codable {
     case averageExcludePadding
     case averageIncludePadding

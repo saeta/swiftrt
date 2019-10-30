@@ -147,7 +147,9 @@ public extension CudaQueue {
     //--------------------------------------------------------------------------
     /// fill(result:with:
     /// NOTE: this can be much faster, doesn't need to be ordered access
-    func fill<T>(_ result: inout T, with value: T.Element) where T: TensorView {
+    func fill<T>(_ result: inout T, with value: T.Element) where
+        T: TensorView
+    {
     }
 
     //--------------------------------------------------------------------------
