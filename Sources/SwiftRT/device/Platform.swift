@@ -38,7 +38,9 @@ final public class Platform: LocalPlatform {
     public private(set) var trackingId = 0
     public var logInfo: LogInfo
     
-    /// a platform wide unique queue id obtained during initialization
+    /// a platform wide unique device id obtained during initialization
+    /// This is used to provide a platform wide unique value for the
+    /// `ComputeDevice.deviceArrayReplicaKey`
     private static var deviceIdCounter = AtomicCounter(value: -1)
     public static var nextUniqueDeviceId: Int {
         return Platform.deviceIdCounter.increment()
