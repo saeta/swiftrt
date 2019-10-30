@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-//#ifdef __APPLE__
+#ifdef __APPLE__
 #include "/usr/local/include/vulkan/vulkan.h"
-//#else
-//#include "/usr/include/vulkan/vulkan.h"
-//#endif
+#else
+#include <vulkan/vulkan.h>
+#endif
