@@ -46,6 +46,7 @@ public class CudaActivationInferring<T>: ActivationTraining<T>
         xyTensorDescriptor = try x.createTensorDescriptor()
 
         // return correctly sized storage for `y`
+        // in this case x and y are the same size
         y = x.createDense()
     }
 
