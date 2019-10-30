@@ -164,8 +164,8 @@ public extension LocalPlatform {
                                    name: testCpuServiceName)
             
             //-------------------------------------
-            // static inclusions
-            #if VULKAN
+            // statically include driver modules if they are available
+            #if canImport(CVulkan)
             loadedServices[vulkanServiceName] =
                 try VulkanService(platform: Platform.local,
                                   id: loadedServices.count,
@@ -173,7 +173,7 @@ public extension LocalPlatform {
                                   name: vulkanServiceName)
             #endif
 
-            #if CUDA
+            #if canImport(CCuda)
             loadedServices[cudaServiceName] =
                 try CudaService(platform: Platform.local,
                                 id: loadedServices.count,
