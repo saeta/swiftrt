@@ -15,22 +15,20 @@
 //
 import CCuda
 
-// *** TODO design questions!
-// 1) class or struct, how are things retained, reused, etc?
-// 2) should the input be retained to guarentee that init
-//    matches the same shape as inferring? Or just assert in inferring?
-
-public struct CudaActivation<T> where
-    T: TensorView, T.Element: AnyFloatingPoint
+//==============================================================================
+/// CudaActivationInferring
+/// used to do activation inference
+public class CudaActivationInferring<T>: ActivationTraining<T>
+    where T: TensorView, T.Element: AnyFloatingPoint
 {
     // properties
-    private let activationDescriptor: ActivationDescriptor
-    private let tensorDescriptor: TensorDescriptor
+    public let activationDescriptor: ActivationDescriptor
+    public let xyTensorDescriptor: TensorDescriptor
 
     //--------------------------------------------------------------------------
     // initializer
     public init(x: T,
-                yShape: inout DataShape,
+                y: inout T,
                 mode: ActivationMode,
                 nan: NanPropagation,
                 reluCeiling: Double = 0) throws
@@ -42,20 +40,19 @@ public struct CudaActivation<T> where
         
         // TODO: figure out how S4TF wants to handle layouts
         // create tensor descriptors
-//        let tensorShape = inData.layout != .matrix ? inData.shape :
-//            Shape(extent: [inData.rows, inData.cols, 1, 1], layout: .nchw)
-
-        tensorDescriptor = try x.createTensorDescriptor()
+        //        let tensorShape = inData.layout != .matrix ? inData.shape :
+        //            Shape(extent: [inData.rows, inData.cols, 1, 1], layout: .nchw)
         
-        // return the shape of the output y and create a tensorDescriptor
-        // with the same scalarType for y
-        yShape = x.shape
+        xyTensorDescriptor = try x.createTensorDescriptor()
+
+        // return correctly sized storage for `y`
+        y = x.createDense()
     }
-    
+
     //--------------------------------------------------------------------------
     // inferring
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationForward
-    public func inferring(y: inout T, from x: T) throws {
+    public override func inferring(y: inout T, from x: T) throws {
         let deviceQueue = DeviceContext.currentQueue as! CudaQueue
         
         try cudaCheck(status: cudnnActivationForward(
@@ -64,39 +61,46 @@ public struct CudaActivation<T> where
             // alpha
             T.Element.onePointer,
             // x
-            tensorDescriptor.desc,
+            xyTensorDescriptor.desc,
             x.deviceReadOnly(using: deviceQueue),
             // beta
             T.Element.zeroPointer,
             // y
-            tensorDescriptor.desc,
+            xyTensorDescriptor.desc,
             y.deviceReadWrite(using: deviceQueue)))
     }
-    
+}
+
+//==============================================================================
+/// CudaActivationTraining
+/// used to do activation inference and training
+public class CudaActivationTraining<T>: CudaActivationInferring<T>
+    where T: TensorView, T.Element: AnyFloatingPoint
+{
     //--------------------------------------------------------------------------
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationBackward
-    public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
+    public override func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
         let deviceQueue = DeviceContext.currentQueue as! CudaQueue
-
+        
         try cudaCheck(status: cudnnActivationBackward(
             deviceQueue.cudnn.handle,
             activationDescriptor.desc,
             // alpha
             T.Element.onePointer,
             // y
-            tensorDescriptor.desc,
+            xyTensorDescriptor.desc,
             y.deviceReadOnly(using: deviceQueue),
             // dy
-            tensorDescriptor.desc,
+            xyTensorDescriptor.desc,
             yDiff.deviceReadOnly(using: deviceQueue),
             // x
-            tensorDescriptor.desc,
+            xyTensorDescriptor.desc,
             x.deviceReadOnly(using: deviceQueue),
             // beta
             T.Element.zeroPointer,
             // dx
-            tensorDescriptor.desc,
+            xyTensorDescriptor.desc,
             xDiff.deviceReadWrite(using: deviceQueue)))
     }
 }

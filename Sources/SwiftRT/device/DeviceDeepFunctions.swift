@@ -100,6 +100,20 @@ public enum PoolingMode: Int, Codable {
 }
 
 //==============================================================================
+public class ActivationInferring<T> where
+    T: TensorView, T.Element: FloatingPoint
+{
+    public func inferring(y: inout T, from x: T) throws
+    { fatalError("Abstract") }
+}
+
+public class ActivationTraining<T>: ActivationInferring<T> where
+    T: TensorView, T.Element: FloatingPoint
+{
+    public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws
+    { fatalError("Abstract") }
+}
+
 public enum ActivationMode: Int, Codable {
     case sigmoid
     case relu

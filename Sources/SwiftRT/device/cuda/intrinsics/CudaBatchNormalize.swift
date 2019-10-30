@@ -152,7 +152,7 @@ public struct CudaBatchNormalize<T> where
     // gradient
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationBackward
     public func gradient(y: T, yDiff: T, x: T, xDiff: inout T) throws {
-        let deviceQueue = DeviceContext.currentQueue as! CudaQueue
+//        let deviceQueue = DeviceContext.currentQueue as! CudaQueue
 
     }
 }
