@@ -53,25 +53,23 @@ public func using<R>(_ devices: [ComputeDevice],
 
 //==============================================================================
 /// DeviceContext
-public struct DeviceContextState {
-    /// current collection of devices used to execute/distribute work
-    var devices: [ComputeDevice]
-    /// specifies whether operators in the current scope are
-    /// evaluated for training or inferring
-    var evaluationMode: EvaluationMode = .inferring
-    /// helpers
-    var isInferring: Bool { return evaluationMode == .inferring }
-    var isTraining: Bool { return evaluationMode == .training }
-}
-
-//==============================================================================
-/// DeviceContext
 /// Manages the scope for the current devices, log, and error handlers
 @usableFromInline
 class DeviceContext {
     /// stack of current device collections used to execute/distribute work
-    var stateStack: [DeviceContextState]
-    
+    var devicesStack: [[ComputeDevice]]
+    /// specifies whether operators in the current scope are
+    /// evaluated for training or inferring
+    var evaluationMode: EvaluationMode = .inferring
+    /// a convenience property. `true` if the context is inferring
+    static var isInferring: Bool {
+        return DeviceContext.local.evaluationMode == .inferring
+    }
+    /// a convenience property. `true` if the context is training
+    static var isTraining: Bool {
+        return DeviceContext.local.evaluationMode == .training
+    }
+
     //--------------------------------------------------------------------------
     /// thread data key
     private static let key: pthread_key_t = {
@@ -103,38 +101,34 @@ class DeviceContext {
 
     //--------------------------------------------------------------------------
     /// current
-    public static var current: DeviceContextState {
-        return DeviceContext.local.stateStack.last!
+    public static var current: [ComputeDevice] {
+        return DeviceContext.local.devicesStack.last!
     }
 
     //--------------------------------------------------------------------------
     /// currentQueue
     // TODO: temporary scheme
     public static var currentQueue: DeviceQueue {
-        return DeviceContext.local.stateStack.last!.devices[0].queues[0]
+        return DeviceContext.local.devicesStack.last![0].queues[0]
     }
     
     //--------------------------------------------------------------------------
     /// hostQueue
     public static var hostQueue: DeviceQueue {
-        let currentDevice = DeviceContext.current.devices[0]
-        return currentDevice.memory.addressing == .unified ?
-            currentDevice.queues[0] : Platform.cpu.queues[0]
+        return DeviceContext.current[0].memory.addressing == .unified ?
+            DeviceContext.current[0].queues[0] : Platform.cpu.queues[0]
     }
 
     //--------------------------------------------------------------------------
     /// logInfo
     // `last` is always valid because there will always be
     // the platform default queue and logInfo
-    public var logInfo: LogInfo { return stateStack.last!.devices[0].logInfo }
+    public var logInfo: LogInfo { return devicesStack.last![0].logInfo }
 
     //--------------------------------------------------------------------------
     // initializers
     private init() {
-        stateStack = [
-            DeviceContextState(devices: [Platform.local.defaultDevice],
-                               evaluationMode: .inferring)
-        ]
+        devicesStack = [[Platform.local.defaultDevice]]
     }
 
     //--------------------------------------------------------------------------
@@ -143,10 +137,7 @@ class DeviceContext {
     /// it the current queue used by operator functions
     @usableFromInline
     func push(devices: [ComputeDevice]) {
-        let evaluationMode = DeviceContext.local.stateStack.last!.evaluationMode
-        let state = DeviceContextState(devices: devices,
-                                       evaluationMode: evaluationMode)
-        stateStack.append(state)
+        devicesStack.append(devices)
     }
 
     //--------------------------------------------------------------------------
@@ -154,7 +145,7 @@ class DeviceContext {
     /// restores the previous current devices collection
     @usableFromInline
     func popDevices() {
-        assert(stateStack.count > 1)
-        _ = stateStack.popLast()
+        assert(devicesStack.count > 1)
+        _ = devicesStack.popLast()
     }
 }

@@ -82,7 +82,7 @@ public struct CudaBatchNormalize<T> where
         
         bias = try createZeroWorkspace(byteCount: workspaceSize)
         
-        if DeviceContext.current.isTraining {
+        if DeviceContext.isTraining {
             saved_mean = try createZeroWorkspace(byteCount: workspaceSize)
             saved_var = try createZeroWorkspace(byteCount: workspaceSize)
         }
