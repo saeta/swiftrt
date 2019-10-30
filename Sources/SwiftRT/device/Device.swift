@@ -139,13 +139,14 @@ public extension LocalComputeService {
 public protocol ComputeDevice: ObjectTracking, Logger, DeviceErrorHandling {
     //-------------------------------------
     // properties
-    /// a key to lookup device array replicas
+    /// a key to lookup a TensorArray's DeviceArray replica associated with
+    /// this device
     var deviceArrayReplicaKey: Int { get }
     /// describes the devices memory properties and available heaps
     var memory: MemoryProperties { get }
     /// parameters defining maximum device capabilties
     var limits: DeviceLimits { get }
-    /// the id of the device for example dev:0
+    /// the id of the device for example dev:0, dev:1, ...
     var id: Int { get }
     /// the name of the device
     var name: String { get }
