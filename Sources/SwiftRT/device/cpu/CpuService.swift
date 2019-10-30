@@ -121,13 +121,13 @@ public class TestCpuService: CpuComputeService, LocalComputeService {
         
         // add discreet cpu devices only for testing
         devices.append(CpuDevice(service: self,
-                                 deviceId: 0,
+                                 deviceId: 1,
                                  logInfo: logInfo,
                                  addressing: .discreet,
                                  timeout: timeout))
         
         devices.append(CpuDevice(service: self,
-                                 deviceId: 1,
+                                 deviceId: 2,
                                  logInfo: logInfo,
                                  addressing: .discreet,
                                  timeout: timeout))

@@ -148,7 +148,7 @@ class test_DataMigration: XCTestCase {
             _ = try view.readWrite(using: queue1)
             XCTAssert(!view.tensorArray.lastAccessCopiedBuffer)
 
-            // ALLOC device array on cpu:1
+            // ALLOC device array on cpu:2
             // COPY  cpu:1 --> cpu:2_q0
             _ = try view.readOnly(using: queue2)
             XCTAssert(view.tensorArray.lastAccessCopiedBuffer)
@@ -181,7 +181,7 @@ class test_DataMigration: XCTestCase {
             XCTAssert(view.tensorArray.lastAccessCopiedBuffer)
             
             // accessing data without a queue causes transfer to the host
-            // COPY cpu:2_q0 --> host
+            // COPY cpu:2_q0 --> uma:cpu:0
             _ = try view.readOnly()
             XCTAssert(view.tensorArray.lastAccessCopiedBuffer)
 
