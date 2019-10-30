@@ -384,7 +384,7 @@ public extension TensorView {
     /// the new one begins
     private func synchronize(queue lastQueue: DeviceQueue?,
                              with nextQueue: DeviceQueue) throws {
-        if let lastQueue = lastQueue, nextQueue.id != lastQueue.id {
+        if let lastQueue = lastQueue, nextQueue.uniqueId != lastQueue.uniqueId {
             let event = try lastQueue.createEvent()
             diagnostic(
                 "\(nextQueue.device.name)_\(nextQueue.name) will wait for " +

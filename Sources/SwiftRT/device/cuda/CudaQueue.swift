@@ -24,6 +24,7 @@ public final class CudaQueue: LocalDeviceQueue {
     public var defaultQueueEventOptions = QueueEventOptions()
     public var device: ComputeDevice { return cudaDevice }
     public let id: Int
+    public let uniqueId: Int = Platform.nextUniqueQueueId
     public let name: String
     public var logInfo: LogInfo
     public var timeout: TimeInterval?

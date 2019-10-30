@@ -45,7 +45,11 @@ final public class Platform: LocalPlatform {
         return Platform.deviceArrayReplicaKeyCounter.increment()
     }
     
-    /// a platform wide unique queue id obtained during initialization
+    /// This is used to provide a platform wide unique queue id set
+    /// during initialization of the `DeviceQueue.uniqueId` property
+    /// It is used during `TensorView` synchronize to detect if a tensor's
+    /// use is crossing from one device queue to another, and if
+    /// synchronization needs to be performed
     private static var queueIdCounter = AtomicCounter(value: -1)
     public static var nextUniqueQueueId: Int {
         return Platform.queueIdCounter.increment()

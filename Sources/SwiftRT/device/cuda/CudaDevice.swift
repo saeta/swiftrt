@@ -90,8 +90,7 @@ public class CudaDevice : LocalComputeDevice {
         assert(service.configuration[.queuesPerDevice] is Int)
         let queueCount = service.configuration[.queuesPerDevice] as! Int
         var queues = [DeviceQueue]()
-        for _ in 0..<queueCount {
-            let queueId = Platform.nextUniqueQueueId
+        for queueId in 0..<queueCount {
             let queueName = "queue:\(queueId)"
             try queues.append(CudaQueue(logInfo: logInfo.flat(queueName),
                                         device: self, name: queueName,

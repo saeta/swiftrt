@@ -34,14 +34,17 @@ public protocol DeviceQueue:
     /// if `true` the queue will execute functions synchronous with the app
     /// it is `false` by default and used for debugging
     var executeSynchronously: Bool { get set }
-    /// a unique id used to identify the queue
+    /// the id to be used identify the queue in diagnostic messages
+    /// it is an index value 0, 1, ... relative to the owning device
     var id: Int { get }
     /// a name used to identify the queue
     var name: String { get }
     /// the maximum time to wait for an operation to complete
     /// a value of 0 (default) will wait forever
     var timeout: TimeInterval? { get set }
-    
+    /// a platform wide unique id used to identify the queue
+    var uniqueId: Int { get }
+
     //--------------------------------------------------------------------------
     // synchronization functions
     /// creates a QueueEvent
