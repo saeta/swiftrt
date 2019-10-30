@@ -21,7 +21,7 @@ public class CpuDevice: LocalComputeDevice {
     // properties
     public private(set) var trackingId = 0
     public private(set) var queues = [DeviceQueue]()
-    public let deviceArrayReplicaKey = Platform.nextUniqueDeviceId
+    public let deviceArrayReplicaKey = Platform.nextDeviceArrayReplicaKey
     public let id: Int
     public var logInfo: LogInfo
     public let name: String

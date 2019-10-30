@@ -22,7 +22,7 @@ public class VulkanDevice : LocalComputeDevice {
     public private(set) var trackingId = 0
     public private (set) weak var service: ComputeService!
     public private(set) var queues = [DeviceQueue]()
-    public var deviceArrayReplicaKey = Platform.nextUniqueDeviceId
+    public var deviceArrayReplicaKey = Platform.nextDeviceArrayReplicaKey
     public let id: Int
     public var logInfo: LogInfo
     public let name: String

@@ -23,7 +23,7 @@ public class CudaDevice : LocalComputeDevice {
     public private(set) weak var service: ComputeService!
     public private(set) var queues = [DeviceQueue]()
     public let attributes: [String : String]
-    public let deviceArrayReplicaKey = Platform.nextUniqueDeviceId
+    public let deviceArrayReplicaKey = Platform.nextDeviceArrayReplicaKey
     public let id: Int
     public var logInfo: LogInfo
     public var maxThreadsPerBlock: Int { return Int(props.maxThreadsPerBlock) }

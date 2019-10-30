@@ -38,12 +38,11 @@ final public class Platform: LocalPlatform {
     public private(set) var trackingId = 0
     public var logInfo: LogInfo
     
-    /// a platform wide unique device id obtained during initialization
     /// This is used to provide a platform wide unique value for the
     /// `ComputeDevice.deviceArrayReplicaKey`
-    private static var deviceIdCounter = AtomicCounter(value: -1)
-    public static var nextUniqueDeviceId: Int {
-        return Platform.deviceIdCounter.increment()
+    private static var deviceArrayReplicaKeyCounter = AtomicCounter(value: -1)
+    public static var nextDeviceArrayReplicaKey: Int {
+        return Platform.deviceArrayReplicaKeyCounter.increment()
     }
     
     /// a platform wide unique queue id obtained during initialization
@@ -107,8 +106,8 @@ public protocol LocalPlatform : ComputePlatform {
     /// the global services collection
     static var _services: [String: ComputeService]? { get set }
     var _defaultDevice: ComputeDevice? { get set }
-    /// a platform wide unique device id obtained during initialization
-    static var nextUniqueDeviceId: Int { get }
+    /// a platform wide unique key used during device initialization
+    static var nextDeviceArrayReplicaKey: Int { get }
     /// a platform wide unique queue id obtained during initialization
     static var nextUniqueQueueId: Int { get }
 }
