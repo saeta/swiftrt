@@ -51,9 +51,9 @@ public class CudaActivationInferring<T>: ActivationTraining<T>
     }
 
     //--------------------------------------------------------------------------
-    // inferring
+    // infer
     // https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnActivationForward
-    public override func inferring(y: inout T, from x: T) throws {
+    public override func infer(y: inout T, from x: T) throws {
         let deviceQueue = DeviceContext.currentQueue as! CudaQueue
         
         try cudaCheck(status: cudnnActivationForward(

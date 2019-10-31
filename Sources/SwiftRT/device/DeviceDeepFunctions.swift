@@ -16,6 +16,98 @@
 import Foundation
 
 //==============================================================================
+/// Convolution
+///
+public class ConvolutionInferring<T> where
+    T: TensorView, T.Element: FloatingPoint
+{
+    public func infer(y: inout T, from x: T, filter: T, bias: T) throws
+    { fatalError("Abstract") }
+}
+
+public class ConvolutionTraining<T>: ConvolutionInferring<T> where
+    T: TensorView, T.Element: FloatingPoint
+{
+    public func gradient(y: T, yDiff: T,
+                         filter: T, filterDiff: inout T,
+                         bias: T, biasDiff: inout T,
+                         x: T, xDiff: inout T) throws
+    { fatalError("Abstract") }
+}
+
+public extension DeviceQueue {
+    func createConvolutionInferring<T>(
+        x: T,
+        yShape: inout DataShape,
+        filter: T,
+        bias: T,
+        activation: ActivationMode,
+        strides: [Int],
+        padding: [Int],
+        dilations: [Int],
+        properties: ConvolutionProperties,
+        dataQueue: CudaQueue,
+        filterBiasBackQueue: CudaQueue) throws -> ConvolutionInferring<T>
+        where T: TensorView, T.Element: AnyFloatingPoint
+    {
+        fatalError("cpu not implemented")
+    }
+
+    func createConvolutionTraining<T>(
+        x: T,
+        yShape: inout DataShape,
+        filter: T,
+        bias: T,
+        activation: ActivationMode,
+        strides: [Int],
+        padding: [Int],
+        dilations: [Int],
+        properties: ConvolutionProperties,
+        dataQueue: CudaQueue,
+        filterBiasBackQueue: CudaQueue) throws -> ConvolutionTraining<T>
+        where T: TensorView, T.Element: AnyFloatingPoint
+    {
+        fatalError("cpu not implemented")
+    }
+}
+
+public extension CudaQueue {
+    func createConvolutionInferring<T>(
+        x: T,
+        yShape: inout DataShape,
+        filter: T,
+        bias: T,
+        activation: ActivationMode,
+        strides: [Int],
+        padding: [Int],
+        dilations: [Int],
+        properties: ConvolutionProperties,
+        dataQueue: CudaQueue,
+        filterBiasBackQueue: CudaQueue) throws -> ConvolutionInferring<T>
+        where T: TensorView, T.Element: AnyFloatingPoint
+    {
+        fatalError("cpu not implemented")
+    }
+
+    func createConvolutionTraining<T>(
+        x: T,
+        yShape: inout DataShape,
+        filter: T,
+        bias: T,
+        activation: ActivationMode,
+        strides: [Int],
+        padding: [Int],
+        dilations: [Int],
+        properties: ConvolutionProperties,
+        dataQueue: CudaQueue,
+        filterBiasBackQueue: CudaQueue) throws -> ConvolutionTraining<T>
+        where T: TensorView, T.Element: AnyFloatingPoint
+    {
+        fatalError("cpu not implemented")
+    }
+}
+
+//==============================================================================
 // ConvolutionProperties
 public struct ConvolutionProperties: Codable {
     var activationNan: NanPropagation = .noPropagate
@@ -103,7 +195,7 @@ public enum PoolingMode: Int, Codable {
 public class ActivationInferring<T> where
     T: TensorView, T.Element: FloatingPoint
 {
-    public func inferring(y: inout T, from x: T) throws
+    public func infer(y: inout T, from x: T) throws
     { fatalError("Abstract") }
 }
 
@@ -121,6 +213,33 @@ public enum ActivationMode: Int, Codable {
     case clippedRelu
     case elu
     case identity
+}
+
+public extension DeviceQueue {
+    func createActivation<T>(
+        x: T,
+        y: inout T,
+        mode: ActivationMode,
+        nan: NanPropagation,
+        reluCeiling: Double = 0) throws -> ActivationInferring<T>
+        where T: TensorView, T.Element: AnyFloatingPoint
+    {
+        fatalError("cpu not implemented")
+    }
+}
+
+public extension CudaQueue {
+    func createActivation<T>(
+        x: T,
+        y: inout T,
+        mode: ActivationMode,
+        nan: NanPropagation,
+        reluCeiling: Double = 0) throws -> ActivationInferring<T>
+        where T: TensorView, T.Element: AnyFloatingPoint
+    {
+        return try CudaActivationInferring(x: x, y: &y, mode: mode,
+                                           nan: nan, reluCeiling: reluCeiling)
+    }
 }
 
 //==============================================================================
